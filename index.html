@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control Civil Minero</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        mining: {
+                            900: '#0f172a', // Fondo muy oscuro
+                            800: '#1e293b', // Paneles
+                            700: '#334155', // Bordes
+                            accent: '#3b82f6', // Azul primario
+                            warning: '#eab308', // Amarillo
+                            success: '#22c59e'  // Verde (ajustado para más contraste)
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            overflow-y: auto; 
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="bg-mining-900 text-slate-200 min-h-screen flex flex-col">
+
+    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0 hidden">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            
+            <div class="flex items-center gap-4">
+                <h1 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-helmet-safety text-mining-accent"></i> 
+                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| Gestión de Obra</span>
+                </h1>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex bg-mining-900 rounded-lg p-1 border border-mining-700">
+                    <button onclick="cambiarPestana('carga')" id="btnCarga" class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow">
+                        <i class="fa-regular fa-floppy-disk mr-2"></i> Cargar Datos
+                    </button>
+                    <button onclick="cambiarPestana('visualizacion')" id="btnVer" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
+                        <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
+                    </button>
+                </div>
+                
+                <button onclick="handleLogout()" class="text-red-400 hover:text-red-300 transition-colors text-sm font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline">Salir</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
+        
+        <section id="viewLogin" class="fade-in hidden flex flex-col items-center justify-center min-h-[70vh]">
+            <div class="max-w-sm mx-auto w-full bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-8 space-y-6">
+                <h2 class="text-3xl font-bold text-white text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-lock text-mining-accent"></i> 
+                    Acceso al Sistema
+                </h2>
+                <p class="text-sm text-slate-400 text-center">Ingrese sus credenciales para acceder a la gestión de obra.</p>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    
+                    <div class="space-y-1">
+                        <label for="loginEmail" class="text-xs text-slate-400 font-bold uppercase">Correo Electrónico</label>
+                        <input type="email" id="loginEmail" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="su.correo@empresa.com">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="loginPassword" class="text-xs text-slate-400 font-bold uppercase">Contraseña</label>
+                        <input type="password" id="loginPassword" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="******">
+                    </div>
+
+                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2 mt-6">
+                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="viewCarga" class="fade-in hidden">
+            <div class="max-w-xl mx-auto bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-6 space-y-6">
+                
+                <h2 class="text-2xl font-bold text-white border-b border-mining-700 pb-3" id="cargaTitle">Menú de Carga</h2>
+                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos. El registro anterior se eliminará de su posición original.</p>
+                
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Registro</label>
+                    <div class="relative">
+                        <select id="selectTipo" onchange="toggleForm()" class="w-full bg-mining-900 border border-mining-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-mining-accent focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
+                            <option value="" disabled selected>Seleccione una opción...</option>
+                            <option value="muro">MURO</option>
+                            <option value="cancha">CANCHA</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <form id="dataForm" onsubmit="guardarDatos(event)" class="space-y-6 hidden fade-in">
+                    
+                    <div class="space-y-2">
+                        <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Turno de Carga</label>
+                        <div class="relative">
+                            <select id="selectTurno" required class="w-full bg-mining-900 border border-mining-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-mining-accent focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
+                                <option value="" disabled selected>Seleccione el turno...</option>
+                                <option value="DIA">DÍA</option>
+                                <option value="NOCHE">NOCHE</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                                <i class="fa-solid fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="recordIdToModify" value="">
+                    <input type="hidden" id="originalZona" value="">
+                    <input type="hidden" id="originalKey" value="">
+
+                    <div id="fieldsMuro" class="hidden space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
+                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Muro</label>
+                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Capa # (Alfanumérico)</label>
+                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: 1, 3A, R-5" required>
+                        </div>
+
+                        <div class="bg-mining-900 p-4 rounded border border-mining-700">
+                            <label class="text-xs text-slate-400 font-bold uppercase block mb-3">Estado de Capa</label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" id="checkParcial" name="estadoMuro" class="peer hidden" onchange="handleChecks('parcial')">
+                                    <span class="w-5 h-5 border-2 border-slate-600 rounded flex items-center justify-center peer-checked:bg-yellow-500 peer-checked:border-yellow-500 transition-all">
+                                        <i class="fa-solid fa-check text-black text-xs opacity-0 peer-checked:opacity-100"></i>
+                                    </span>
+                                    <span class="text-sm group-hover:text-yellow-400 transition-colors">PARCIAL</span>
+                                </label>
+
+                                <label class="flex items-center gap-2 cursor-pointer group">
+                                    <input type="checkbox" id="checkCompleta" name="estadoMuro" class="peer hidden" onchange="handleChecks('completa')">
+                                    <span class="w-5 h-5 border-2 border-slate-600 rounded flex items-center justify-center peer-checked:bg-green-500 peer-checked:border-green-500 transition-all">
+                                        <i class="fa-solid fa-check text-black text-xs opacity-0 peer-checked:opacity-100"></i>
+                                    </span>
+                                    <span class="text-sm group-hover:text-green-400 transition-colors">COMPLETA</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="fieldsCancha" class="hidden space-y-5">
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
+                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC-3" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Pileta</label>
+                            <input type="text" id="canchaPileta" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Nombre de pileta" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Cancha #</label>
+                            <input type="text" id="canchaNumero" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Número de cancha" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Material</label>
+                            <div class="relative">
+                                <select id="canchaMaterial" class="w-full bg-mining-900 border border-mining-700 text-white p-2.5 rounded focus:border-mining-accent outline-none appearance-none">
+                                    <option value="FINO">FINO</option>
+                                    <option value="MASIVO">MASIVO</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2">
+                        <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
+                    </button>
+                    
+                    <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
+                        Borrar todos los datos (Admin)
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="viewVisualizacion" class="hidden fade-in">
+            
+            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-mining-700 pb-4">
+                <div>
+                    <h2 class="text-3xl font-light text-white">Visualización de Obra</h2>
+                    <p class="text-sm text-slate-400 mt-1">Clasificación por Zonas y Tipos</p>
+                </div>
+                <div class="text-right mt-3 sm:mt-0">
+                    <span id="totalRegistros" class="text-2xl font-bold text-mining-accent">0</span>
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Registros</p>
+                </div>
+            </header>
+
+            <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+                </div>
+
+            <div id="dashboardContainer" class="grid grid-cols-1 gap-8 pb-20">
+                <div class="text-center py-20 text-slate-600">
+                    <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
+                    <p>No hay registros cargados aún.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="toast" class="fixed bottom-5 right-5 bg-mining-800 border-l-4 border-mining-accent text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid fa-circle-check text-mining-accent"></i>
+        <span>Datos guardados correctamente</span>
+    </div>
+
+    <div id="actionConfirmationModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
+        <div class="bg-mining-800 rounded-xl w-full max-w-sm p-6 border border-mining-700 shadow-2xl">
+            <h3 id="actionModalTitle" class="text-lg font-bold text-white mb-4 border-b border-mining-700 pb-2">Confirmar Acción</h3>
+            <p id="actionModalMessage" class="text-sm text-slate-300 mb-6"></p>
+            <div class="flex justify-end gap-3">
+                <button onclick="document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden')" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition-colors">Cancelar</button>
+                <button id="actionModalConfirmBtn" class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
+        <div class="bg-mining-800 rounded-xl w-full max-w-sm p-6 border border-mining-700 shadow-2xl">
+            <h3 class="text-lg font-bold text-yellow-500 mb-4 border-b border-mining-700 pb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Atención</h3>
+            <p id="alertMessage" class="text-sm text-slate-300 mb-6"></p>
+            <div class="flex justify-end">
+                <button onclick="hideAlertModal()" class="px-4 py-2 text-sm font-medium rounded-lg bg-mining-accent hover:bg-blue-600 text-white transition-colors">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // =========================================================================
+        // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (REEMPLAZAR CLAVES) ===
+        // =========================================================================
+        
+        const SUPABASE_URL = 'REEMPLAZAR_CON_TU_URL_DEL_PROYECTO'; 
+        const SUPABASE_ANON_KEY = 'REEMPLAZAR_CON_TU_CLAVE_ANON_PUBLICO'; 
+
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Variable global para el estado de autenticación (contiene el objeto user de Supabase)
+        let currentUser = null; 
+        
+        // Variable global para el filtro de zona.
+        let currentZoneFilter = 'TODOS';
+
+        // =========================================================================
+        // === 2. AUTENTICACIÓN Y MANEJO DE VISTAS ===
+        // =========================================================================
+        
+        function cambiarVista(vista) {
+            const views = {
+                login: document.getElementById('viewLogin'),
+                carga: document.getElementById('viewCarga'),
+                visualizacion: document.getElementById('viewVisualizacion')
+            };
+            const nav = document.getElementById('mainNav');
+
+            Object.values(views).forEach(v => v.classList.replace('flex', 'hidden'));
+            Object.values(views).forEach(v => v.classList.replace('block', 'hidden'));
+            nav.classList.add('hidden');
+
+            if (vista === 'login') {
+                views.login.classList.replace('hidden', 'flex');
+            } else {
+                nav.classList.remove('hidden');
+                views[vista].classList.replace('hidden', 'block');
+            }
+            
+            if (vista === 'visualizacion') {
+                renderizarDatos();
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        async function initializeApp() {
+            const { data: { user } } = await supabase.auth.getUser();
+            currentUser = user; 
+            
+            if (!currentUser) {
+                cambiarVista('login'); 
+                cambiarPestana('carga'); 
+            } else {
+                document.getElementById('userInfo').innerText = `| Sesión: ${currentUser.email}`;
+                cambiarVista('carga'); 
+            }
+        }
+        
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                console.error("Login Error:", error);
+                showAlertModal(`Error al iniciar sesión: ${error.message}`);
+            } else {
+                currentUser = data.user;
+                document.getElementById('loginForm').reset();
+                initializeApp(); 
+            }
+        }
+
+        async function handleLogout() {
+            const { error } = await supabase.auth.signOut();
+            
+            if (error) {
+                console.error("Logout Error:", error);
+                showAlertModal(`Error al cerrar sesión: ${error.message}`);
+            } else {
+                currentUser = null;
+                cambiarVista('login'); 
+            }
+        }
+
+        function cambiarPestana(tab) {
+            if (tab === 'carga' || tab === 'visualizacion') {
+                cambiarVista(tab);
+            }
+
+            const btnCarga = document.getElementById('btnCarga');
+            const btnVer = document.getElementById('btnVer');
+
+            if (tab === 'carga') {
+                btnCarga.className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
+                btnVer.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+            } else {
+                btnVer.className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
+                btnCarga.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+            }
+        }
+        
+        // =========================================================================
+        // === 3. LÓGICA DE DATOS (SUPABASE CRUD) ===
+        // =========================================================================
+
+        /**
+         * Lee los datos de Supabase con JOIN para obtener el email del usuario.
+         */
+        async function obtenerDatos() {
+            if (!currentUser) return {};
+
+            // Modificado: El JOIN 'user_id!inner(email)' trae el email del usuario creador.
+            const selectQuery = '*, user_id!inner(email)'; 
+
+            const { data: murosRaw, error: murosError } = await supabase
+                .from('muros_registros')
+                .select(selectQuery);
+            
+            const { data: canchasRaw, error: canchasError } = await supabase
+                .from('canchas_registros')
+                .select(selectQuery);
+            
+            if (murosError || canchasError) {
+                console.error("Error al obtener datos de Supabase:", murosError || canchasError);
+                return {}; 
+            }
+            
+            let datosDB = {};
+
+            // 1. Agrupar Muros por Zona y luego por Muro ID
+            murosRaw.forEach(record => {
+                const zona = record.zona.toUpperCase();
+                const muroId = record.muro_id.toUpperCase();
+                
+                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
+                if (!datosDB[zona].muros) datosDB[zona].muros = {};
+                if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
+
+                datosDB[zona].muros[muroId].push({
+                    id: record.id,
+                    capa: record.capa.toUpperCase(),
+                    estado: record.estado,
+                    turno: record.turno, // AÑADIDO
+                    usuarioEmail: record.user_id.email, // AÑADIDO
+                    fecha: new Date(record.fecha).toLocaleString()
+                });
+            });
+
+            // 2. Agrupar Canchas por Zona
+            canchasRaw.forEach(record => {
+                const zona = record.zona.toUpperCase();
+
+                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
+                if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
+
+                datosDB[zona].canchas.push({
+                    id: record.id,
+                    pileta: record.pileta.toUpperCase(),
+                    numero: record.numero.toUpperCase(),
+                    material: record.material,
+                    turno: record.turno, // AÑADIDO
+                    usuarioEmail: record.user_id.email, // AÑADIDO
+                    fecha: new Date(record.fecha).toLocaleString()
+                });
+            });
+            
+            return datosDB;
+        }
+
+        /**
+         * Guarda o actualiza datos en Supabase.
+         */
+        async function guardarDatos(e) {
+            e.preventDefault();
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
+
+            const tipo = document.getElementById('selectTipo').value;
+            const recordIdToModify = document.getElementById('recordIdToModify').value;
+            const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); // <-- NUEVO CAMPO
+            
+            let tabla = '';
+            let objetoRegistro = {};
+            let isUpdate = !!recordIdToModify;
+            
+            if (tipo === 'muro') {
+                tabla = 'muros_registros';
+                const zona = document.getElementById('muroZona').value.trim().toUpperCase();
+                const muroId = document.getElementById('muroId').value.trim().toUpperCase();
+                const capa = document.getElementById('muroCapa').value.trim().toUpperCase(); 
+                const esParcial = document.getElementById('checkParcial').checked;
+                const esCompleta = document.getElementById('checkCompleta').checked;
+
+                if (!esParcial && !esCompleta) {
+                    return showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa) para guardar el registro.");
+                }
+
+                objetoRegistro = {
+                    zona: zona,
+                    muro_id: muroId,
+                    capa: capa,
+                    estado: esParcial ? 'parcial' : 'completa',
+                    turno: turno, // AÑADIDO
+                    user_id: currentUser.id 
+                };
+
+            } else { // tipo === 'cancha'
+                tabla = 'canchas_registros';
+                const zona = document.getElementById('canchaZona').value.trim().toUpperCase();
+                const pileta = document.getElementById('canchaPileta').value.trim().toUpperCase();
+                const cancha = document.getElementById('canchaNumero').value.trim().toUpperCase();
+                const material = document.getElementById('canchaMaterial').value;
+                
+                objetoRegistro = {
+                    zona: zona,
+                    pileta: pileta,
+                    numero: cancha,
+                    material: material,
+                    turno: turno, // AÑADIDO
+                    user_id: currentUser.id 
+                };
+            }
+            
+            let error = null;
+            if (isUpdate) {
+                const result = await supabase
+                    .from(tabla)
+                    .update(objetoRegistro)
+                    .eq('id', recordIdToModify);
+                error = result.error;
+            } else {
+                const result = await supabase
+                    .from(tabla)
+                    .insert([objetoRegistro]);
+                error = result.error;
+            }
+
+            if (error) {
+                console.error("Error al guardar/actualizar en Supabase:", error);
+                showAlertModal(`Error al guardar: ${error.message}`);
+                return;
+            }
+
+            mostrarToast(isUpdate ? "Registro modificado correctamente." : "Datos guardados correctamente", isUpdate ? 'yellow' : 'blue');
+            
+            // Resetear el formulario y el estado de modificación
+            e.target.reset();
+            document.getElementById('recordIdToModify').value = "";
+            document.getElementById('selectTipo').value = "";
+            document.getElementById('dataForm').classList.add('hidden');
+            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+            document.getElementById('modificationHint').classList.add('hidden');
+            
+            renderizarDatos(); 
+        }
+        
+        // --- LIMPIEZA DE DB (ADMIN) ---
+
+        async function limpiarDB() {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para realizar esta acción.");
+            
+            const { error: murosError } = await supabase
+                .from('muros_registros')
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000'); 
+                
+            const { error: canchasError } = await supabase
+                .from('canchas_registros')
+                .delete()
+                .neq('id', '00000000-0000-0000-0000-000000000000');
+            
+            if (murosError || canchasError) {
+                console.error("Error al limpiar DB:", murosError || canchasError);
+                return showAlertModal(`Error al borrar la base de datos: ${murosError?.message || canchasError?.message}`);
+            }
+
+            currentZoneFilter = 'TODOS'; 
+            renderizarDatos(); 
+            mostrarToast("Todos los datos han sido eliminados.", 'red');
+        }
+
+        // --- ELIMINACIÓN INDIVIDUAL ---
+
+        async function eliminarRegistroMuro(zona, muroId, recordId, shouldRerender = true) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+            
+            const { error } = await supabase
+                .from('muros_registros')
+                .delete()
+                .eq('id', recordId); 
+            
+            if (error) {
+                console.error("Error al eliminar muro:", error);
+                return showAlertModal(`Error al eliminar muro: ${error.message}`);
+            }
+
+            if (shouldRerender) {
+                renderizarDatos();
+                mostrarToast("Registro de muro eliminado correctamente.", 'red');
+            }
+        }
+        
+        async function eliminarRegistroCancha(zona, recordId, shouldRerender = true) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+
+            const { error } = await supabase
+                .from('canchas_registros')
+                .delete()
+                .eq('id', recordId); 
+
+            if (error) {
+                console.error("Error al eliminar cancha:", error);
+                return showAlertModal(`Error al eliminar cancha: ${error.message}`);
+            }
+
+            if (shouldRerender) {
+                renderizarDatos();
+                mostrarToast("Registro de cancha eliminado correctamente.", 'red');
+            }
+        }
+        
+        // --- FUNCIONES DE RENDERIZADO Y UTILIDADES (Ajustadas para mostrar Turno y Usuario) ---
+        
+        function compareAlphanumeric(a, b) {
+            const regex = /(\d+)|(\D+)/g;
+            const partsA = a.capa.match(regex) || [];
+            const partsB = b.capa.match(regex) || [];
+
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                const partA = partsA[i] || '';
+                const partB = partsB[i] || '';
+
+                const isNumberA = /^\d+$/.test(partA);
+                const isNumberB = /^\d+$/.test(partB);
+
+                if (isNumberA && isNumberB) {
+                    const numA = parseInt(partA);
+                    const numB = parseInt(partB);
+                    if (numA !== numB) return numA - numB;
+                } else if (partA !== partB) {
+                    if (partA < partB) return -1;
+                    if (partA > partB) return 1;
+                }
+            }
+            return 0;
+        }
+
+        function generarTarjetaZona(zona, dataZona) {
+            const tieneMuros = dataZona.muros && Object.keys(dataZona.muros).length > 0;
+            const tieneCanchas = dataZona.canchas && dataZona.canchas.length > 0;
+            const totalMuros = tieneMuros ? Object.keys(dataZona.muros).length : 0;
+            const totalCanchas = tieneCanchas ? dataZona.canchas.length : 0;
+
+            let html = `
+                <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in">
+                    <div class="bg-gradient-to-r from-mining-700 to-mining-800 p-4 border-b border-mining-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-map-location-dot mr-2 text-slate-400"></i> ${zona}</h3>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            `;
+
+            // --- COLUMNA MUROS ---
+            html += `<div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase border-b border-mining-700 pb-2 mb-4">
+                            <i class="fa-solid fa-block-brick mr-1"></i> Muros (${totalMuros})
+                        </h4>`;
+            
+            if (tieneMuros) {
+                Object.keys(dataZona.muros).sort().forEach(muroNombre => {
+                    html += `
+                        <div class="bg-mining-900 rounded border border-mining-700 overflow-hidden">
+                            <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
+                            <div class="divide-y divide-mining-700">`;
+                    
+                    dataZona.muros[muroNombre].sort(compareAlphanumeric).forEach(capa => {
+                        const colorClass = capa.estado === 'completa' 
+                            ? 'text-mining-success bg-green-900/10 border-green-800' 
+                            : 'text-mining-warning bg-yellow-900/10 border-yellow-800';
+                        
+                        // Obtener solo el nombre de usuario (parte antes del @)
+                        const userDisplay = capa.usuarioEmail ? capa.usuarioEmail.split('@')[0].toUpperCase() : 'N/A';
+                        
+                        html += `
+                            <div class="flex items-center justify-between px-4 py-3 hover:bg-mining-700/20 transition-colors">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})</span>
+                                    
+                                    <span class="text-xs text-slate-500 mt-1">
+                                        <i class="fa-solid fa-user-gear mr-1"></i> ${userDisplay} | 
+                                        <span class="font-bold text-slate-400">${capa.turno}</span>
+                                    </span>
+                                    
+                                    <span class="text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${capa.fecha}</span>
+                                </div>
+                                <div class="flex gap-1 text-right">
+                                    <button onclick="mostrarModalEdicion('${zona}', '${muroNombre}', '${capa.id}')" class="text-base text-yellow-500 hover:text-yellow-400 p-1 rounded-full transition-colors" title="Modificar">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="mostrarModalEliminarMuro('${zona}', '${muroNombre}', '${capa.id}')" class="text-base text-red-500 hover:text-red-400 p-1 rounded-full transition-colors" title="Eliminar">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                });
+            } else {
+                html += `<p class="text-sm text-slate-600 italic">Sin registros de muros.</p>`;
+            }
+            html += `</div>`; // Fin columna muros
+
+            // --- COLUMNA CANCHAS ---
+            html += `<div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase border-b border-mining-700 pb-2 mb-4">
+                            <i class="fa-solid fa-mountain-sun mr-1"></i> Canchas (${totalCanchas})
+                        </h4>`;
+            
+            if (tieneCanchas) {
+                html += `<div class="space-y-2">`;
+                dataZona.canchas.forEach(cancha => {
+                    const nombreCompleto = `${cancha.pileta} / ${cancha.numero}`;
+                    const materialColorClass = cancha.material === 'FINO'
+                        ? 'bg-blue-900/20 text-blue-300 border-blue-800'
+                        : 'bg-orange-900/20 text-orange-300 border-orange-800';
+                        
+                    const userDisplay = cancha.usuarioEmail ? cancha.usuarioEmail.split('@')[0].toUpperCase() : 'N/A';
+
+                    html += `
+                        <div class="flex items-center justify-between bg-mining-900 p-3 rounded border border-mining-700 hover:bg-mining-700/20 transition-colors">
+                            <div class="flex-1 min-w-0">
+                                <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}</span>
+                                
+                                <span class="text-xs px-2 py-0.5 rounded-full font-bold border ${materialColorClass} inline-block mt-1 mr-2">
+                                    ${cancha.material}
+                                </span>
+                                
+                                <span class="block text-xs text-slate-500 mt-1">
+                                    <i class="fa-solid fa-user-gear mr-1"></i> ${userDisplay} | 
+                                    <span class="font-bold text-slate-400">${cancha.turno}</span>
+                                </span>
+
+                                <span class="block text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${cancha.fecha}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="mostrarModalEdicionCancha('${zona}', '${cancha.id}')" class="text-base text-yellow-500 hover:text-yellow-400 p-1 rounded-full transition-colors" title="Modificar">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="mostrarModalEliminarCancha('${zona}', '${cancha.id}', '${nombreCompleto}')" class="text-base text-red-500 hover:text-red-400 p-1 rounded-full transition-colors" title="Eliminar">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            } else {
+                html += `<p class="text-sm text-slate-600 italic">Sin registros de canchas.</p>`;
+            }
+            html += `</div>`; 
+
+            html += `</div></div>`; 
+            return html;
+        }
+
+        // --- Funciones auxiliares (mantienen su lógica) ---
+
+        function showAlertModal(message) {
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('alertModal').classList.replace('hidden', 'flex');
+        }
+
+        function hideAlertModal() {
+            document.getElementById('alertModal').classList.replace('flex', 'hidden');
+        }
+
+        function mostrarActionModal(title, message, confirmText, callback) {
+            const modal = document.getElementById('actionConfirmationModal');
+            document.getElementById('actionModalTitle').innerText = title;
+            document.getElementById('actionModalMessage').innerHTML = message;
+            document.getElementById('actionModalConfirmBtn').innerText = confirmText;
+            
+            const confirmBtn = document.getElementById('actionModalConfirmBtn');
+            confirmBtn.onclick = () => {
+                modal.classList.replace('flex', 'hidden');
+                callback();
+            };
+
+            modal.classList.replace('hidden', 'flex');
+        }
+
+        function mostrarModalLimpiarDB() {
+            mostrarActionModal(
+                'Confirmar Eliminación',
+                '¿Estás seguro de que deseas borrar <span class="font-bold text-white">todos</span> los datos de obra? Esta acción no se puede deshacer.',
+                'Sí, Borrar Todo',
+                limpiarDB
+            );
+        }
+
+        function mostrarModalEliminarMuro(zona, muroId, recordId) {
+            mostrarActionModal(
+                'Eliminar Registro',
+                `¿Deseas eliminar el registro de muro **${muroId}** en la zona **${zona}**?`,
+                'Eliminar',
+                () => eliminarRegistroMuro(zona, muroId, recordId)
+            );
+        }
+        
+        function mostrarModalEliminarCancha(zona, recordId, nombreCompleto) {
+            mostrarActionModal(
+                'Eliminar Registro',
+                `¿Deseas eliminar el registro de cancha **${nombreCompleto}** en la zona **${zona}**?`,
+                'Eliminar',
+                () => eliminarRegistroCancha(zona, recordId)
+            );
+        }
+        
+        function handleChecks(seleccion) {
+            const parcial = document.getElementById('checkParcial');
+            const completa = document.getElementById('checkCompleta');
+
+            if (seleccion === 'parcial' && parcial.checked) {
+                completa.checked = false;
+            } else if (seleccion === 'completa' && completa.checked) {
+                parcial.checked = false;
+            }
+        }
+
+        function toggleForm() {
+            const tipo = document.getElementById('selectTipo').value;
+            const form = document.getElementById('dataForm');
+            const fieldsMuro = document.getElementById('fieldsMuro');
+            const fieldsCancha = document.getElementById('fieldsCancha');
+
+            form.classList.remove('hidden');
+            
+            document.getElementById('recordIdToModify').value = "";
+            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+            document.getElementById('modificationHint').classList.add('hidden');
+            
+            if (tipo === 'muro') {
+                fieldsMuro.classList.remove('hidden');
+                fieldsCancha.classList.add('hidden');
+                document.getElementById('muroZona').setAttribute('required', '');
+                document.getElementById('muroCapa').setAttribute('required', '');
+                document.getElementById('muroId').setAttribute('required', '');
+                document.getElementById('canchaZona').removeAttribute('required');
+                document.getElementById('canchaPileta').removeAttribute('required');
+                document.getElementById('canchaNumero').removeAttribute('required');
+
+            } else {
+                fieldsMuro.classList.add('hidden');
+                fieldsCancha.classList.remove('hidden');
+                document.getElementById('muroZona').removeAttribute('required');
+                document.getElementById('muroCapa').removeAttribute('required');
+                document.getElementById('muroId').removeAttribute('required');
+                document.getElementById('canchaZona').setAttribute('required', '');
+                document.getElementById('canchaPileta').setAttribute('required', '');
+                document.getElementById('canchaNumero').setAttribute('required', '');
+            }
+        }
+        
+        function mostrarModalEdicion(zona, muroId, recordId) {
+            // Edición requiere una consulta individual a Supabase (no implementada)
+            showAlertModal("Funcionalidad de Edición Temporalmente Deshabilitada. Para editar, se requiere una consulta individual a Supabase.");
+            return; 
+        }
+
+        function mostrarModalEdicionCancha(zona, recordId) {
+            // Edición requiere una consulta individual a Supabase (no implementada)
+            showAlertModal("Funcionalidad de Edición Temporalmente Deshabilitada. Para editar, se requiere una consulta individual a Supabase.");
+            return; 
+        }
+
+        async function renderizarDatos() {
+            const datosDB = await obtenerDatos(); 
+            const zonas = Object.keys(datosDB).sort();
+            let totalCount = 0;
+
+            zonas.forEach(zona => {
+                const dataZona = datosDB[zona];
+                if(dataZona.canchas) totalCount += dataZona.canchas.length;
+                if(dataZona.muros) {
+                    Object.values(dataZona.muros).forEach(arr => totalCount += arr.length);
+                }
+            });
+            document.getElementById('totalRegistros').innerText = totalCount;
+
+            if (zonas.length === 0) {
+                document.getElementById('zoneFilterContainer').innerHTML = ''; 
+                document.getElementById('dashboardContainer').innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-1">
+                        <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros cargados aún.</p>
+                        <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
+                    </div>`;
+                return;
+            }
+
+            renderizarFiltros(zonas);
+            
+            if (!zonas.includes(currentZoneFilter) && currentZoneFilter !== 'TODOS') {
+                currentZoneFilter = 'TODOS'; 
+            }
+            
+            filtrarPorZona(currentZoneFilter, false, datosDB); 
+        }
+
+        function renderizarFiltros(zonas) {
+            const filterContainer = document.getElementById('zoneFilterContainer');
+            let buttonsHtml = '';
+
+            buttonsHtml += generarBotonFiltro('TODOS', currentZoneFilter === 'TODOS');
+
+            zonas.forEach(zona => {
+                buttonsHtml += generarBotonFiltro(zona, currentZoneFilter === zona);
+            });
+
+            filterContainer.innerHTML = buttonsHtml;
+        }
+
+        function generarBotonFiltro(zona, isActive) {
+            const activeClass = 'bg-mining-accent text-white shadow-md';
+            const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+
+            return `
+                <button onclick="filtrarPorZona('${zona}')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClass : inactiveClass}">
+                    ${zona}
+                </button>
+            `;
+        }
+
+        async function filtrarPorZona(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
+            currentZoneFilter = zonaSeleccionada;
+            
+            if (!datosDB) datosDB = await obtenerDatos(); 
+            
+            renderizarContenido(zonaSeleccionada, datosDB);
+            
+            if (updateFilterControls) {
+                const filterContainer = document.getElementById('zoneFilterContainer');
+                filterContainer.querySelectorAll('button').forEach(btn => {
+                    const zonaBtn = btn.innerText.trim();
+                    const activeClass = 'bg-mining-accent text-white shadow-md';
+                    const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+                    
+                    if (zonaBtn === zonaSeleccionada) {
+                        btn.classList.replace(inactiveClass, activeClass);
+                        btn.classList.remove(...inactiveClass.split(' '));
+                        btn.classList.add(...activeClass.split(' '));
+                    } else {
+                        btn.classList.replace(activeClass, inactiveClass);
+                        btn.classList.remove(...activeClass.split(' '));
+                        btn.classList.add(...inactiveClass.split(' '));
+                    }
+                });
+            }
+        }
+
+        function renderizarContenido(zonaSeleccionada, datosDB) {
+            const container = document.getElementById('dashboardContainer');
+            const zonas = zonaSeleccionada === 'TODOS' 
+                ? Object.keys(datosDB).sort() 
+                : [zonaSeleccionada];
+            
+            container.innerHTML = ''; 
+
+            if (zonas.length === 0 || (zonaSeleccionada !== 'TODOS' && !datosDB[zonaSeleccionada])) {
+                container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
+                return;
+            }
+
+            zonas.forEach(zona => {
+                const dataZona = datosDB[zona];
+                if (dataZona) {
+                    const cardHtml = generarTarjetaZona(zona, dataZona);
+                    container.innerHTML += cardHtml; 
+                }
+            });
+        }
+        
+        function mostrarToast(message = "Datos guardados correctamente", type = 'blue') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+            const span = toast.querySelector('span');
+
+            toast.className = 'fixed bottom-5 right-5 text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3';
+
+            span.innerText = message;
+            
+            if (type === 'blue') {
+                toast.classList.add('bg-mining-800', 'border-l-4', 'border-mining-accent');
+                icon.className = 'fa-solid fa-circle-check text-mining-accent';
+            } else if (type === 'red') {
+                toast.classList.add('bg-red-800/80', 'border-l-4', 'border-red-500');
+                icon.className = 'fa-solid fa-trash-can text-red-500';
+            } else if (type === 'yellow') {
+                 toast.classList.add('bg-yellow-800/80', 'border-l-4', 'border-yellow-500');
+                icon.className = 'fa-solid fa-pen-to-square text-yellow-500';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
