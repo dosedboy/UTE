@@ -273,13 +273,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // =========================================================================
-        // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (REEMPLAZAR CLAVES) ===
+        // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (CLAVES INSERTADAS) ===
         // =========================================================================
         
+        // CLAVES DE TU PROYECTO
         const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
 
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // CORRECCIÓN CLAVE: Usamos 'supabaseClient' para evitar conflicto y el error de carga.
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // Variable global para el estado de autenticación (contiene el objeto user de Supabase)
         let currentUser = null; 
@@ -318,14 +320,17 @@
         document.addEventListener('DOMContentLoaded', initializeApp);
 
         async function initializeApp() {
-            const { data: { user } } = await supabase.auth.getUser();
+            // USANDO supabaseClient
+            const { data: { user } } = await supabaseClient.auth.getUser();
             currentUser = user; 
             
             if (!currentUser) {
                 cambiarVista('login'); 
                 cambiarPestana('carga'); 
             } else {
-                document.getElementById('userInfo').innerText = `| Sesión: ${currentUser.email}`;
+                // Modificado: Usar solo el nombre del usuario (antes del @)
+                const userDisplayName = currentUser.email.split('@')[0].toUpperCase();
+                document.getElementById('userInfo').innerText = `| Sesión: ${userDisplayName}`;
                 cambiarVista('carga'); 
             }
         }
@@ -335,7 +340,8 @@
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
 
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            // USANDO supabaseClient
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
             
             if (error) {
                 console.error("Login Error:", error);
@@ -348,7 +354,8 @@
         }
 
         async function handleLogout() {
-            const { error } = await supabase.auth.signOut();
+            // USANDO supabaseClient
+            const { error } = await supabaseClient.auth.signOut();
             
             if (error) {
                 console.error("Logout Error:", error);
@@ -389,11 +396,13 @@
             // Modificado: El JOIN 'user_id!inner(email)' trae el email del usuario creador.
             const selectQuery = '*, user_id!inner(email)'; 
 
-            const { data: murosRaw, error: murosError } = await supabase
+            // USANDO supabaseClient
+            const { data: murosRaw, error: murosError } = await supabaseClient
                 .from('muros_registros')
                 .select(selectQuery);
             
-            const { data: canchasRaw, error: canchasError } = await supabase
+            // USANDO supabaseClient
+            const { data: canchasRaw, error: canchasError } = await supabaseClient
                 .from('canchas_registros')
                 .select(selectQuery);
             
@@ -499,13 +508,15 @@
             
             let error = null;
             if (isUpdate) {
-                const result = await supabase
+                // USANDO supabaseClient
+                const result = await supabaseClient
                     .from(tabla)
                     .update(objetoRegistro)
                     .eq('id', recordIdToModify);
                 error = result.error;
             } else {
-                const result = await supabase
+                // USANDO supabaseClient
+                const result = await supabaseClient
                     .from(tabla)
                     .insert([objetoRegistro]);
                 error = result.error;
@@ -535,12 +546,14 @@
         async function limpiarDB() {
             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para realizar esta acción.");
             
-            const { error: murosError } = await supabase
+            // USANDO supabaseClient
+            const { error: murosError } = await supabaseClient
                 .from('muros_registros')
                 .delete()
                 .neq('id', '00000000-0000-0000-0000-000000000000'); 
                 
-            const { error: canchasError } = await supabase
+            // USANDO supabaseClient
+            const { error: canchasError } = await supabaseClient
                 .from('canchas_registros')
                 .delete()
                 .neq('id', '00000000-0000-0000-0000-000000000000');
@@ -560,7 +573,8 @@
         async function eliminarRegistroMuro(zona, muroId, recordId, shouldRerender = true) {
             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
             
-            const { error } = await supabase
+            // USANDO supabaseClient
+            const { error } = await supabaseClient
                 .from('muros_registros')
                 .delete()
                 .eq('id', recordId); 
@@ -579,7 +593,8 @@
         async function eliminarRegistroCancha(zona, recordId, shouldRerender = true) {
             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
 
-            const { error } = await supabase
+            // USANDO supabaseClient
+            const { error } = await supabaseClient
                 .from('canchas_registros')
                 .delete()
                 .eq('id', recordId); 
