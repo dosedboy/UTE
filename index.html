@@ -392,10 +392,8 @@
          */
         async function obtenerDatos() {
             if (!currentUser) return {};
-
             // Modificado: El JOIN 'user_id!inner(email)' trae el email del usuario creador.
-            const selectQuery = '*, user_id!inner(email)'; 
-
+            const selectQuery = '*'; 
             // USANDO supabaseClient
             const { data: murosRaw, error: murosError } = await supabaseClient
                 .from('muros_registros')
