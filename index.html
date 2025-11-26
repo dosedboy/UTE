@@ -282,7 +282,7 @@
 
         // CORRECCIÓN CLAVE: Usamos 'supabaseClient' para evitar conflicto y el error de carga.
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+        
         // Variable global para el estado de autenticación (contiene el objeto user de Supabase)
         let currentUser = null; 
         
@@ -328,9 +328,12 @@
                 cambiarVista('login'); 
                 cambiarPestana('carga'); 
             } else {
-                // Modificado: Usar solo el nombre del usuario (antes del @)
-                const userDisplayName = currentUser.email.split('@')[0].toUpperCase();
-                document.getElementById('userInfo').innerText = `| Sesión: ${userDisplayName}`;
+                // MODIFICACIÓN CLAVE: Leer el nombre de los metadatos de usuario
+                const userMetadata = currentUser.user_metadata;
+                // Usamos 'nombre_completo' de los metadatos o el email si no se ha asignado nombre
+                const userName = userMetadata.nombre_completo || currentUser.email; 
+
+                document.getElementById('userInfo').innerText = `| Sesión: ${userName}`;
                 cambiarVista('carga'); 
             }
         }
@@ -388,12 +391,14 @@
         // =========================================================================
 
         /**
-         * Lee los datos de Supabase con JOIN para obtener el email del usuario.
+         * Lee los datos de Supabase. Consulta simple para evitar el error del JOIN.
          */
         async function obtenerDatos() {
             if (!currentUser) return {};
-            // Modificado: El JOIN 'user_id!inner(email)' trae el email del usuario creador.
+
+            // CONSULTA SIMPLIFICADA (*)
             const selectQuery = '*'; 
+
             // USANDO supabaseClient
             const { data: murosRaw, error: murosError } = await supabaseClient
                 .from('muros_registros')
@@ -424,8 +429,9 @@
                     id: record.id,
                     capa: record.capa.toUpperCase(),
                     estado: record.estado,
-                    turno: record.turno, // AÑADIDO
-                    usuarioEmail: record.user_id.email, // AÑADIDO
+                    turno: record.turno, 
+                    // LEEMOS EL NOMBRE DE LA NUEVA COLUMNA
+                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', 
                     fecha: new Date(record.fecha).toLocaleString()
                 });
             });
@@ -442,8 +448,9 @@
                     pileta: record.pileta.toUpperCase(),
                     numero: record.numero.toUpperCase(),
                     material: record.material,
-                    turno: record.turno, // AÑADIDO
-                    usuarioEmail: record.user_id.email, // AÑADIDO
+                    turno: record.turno, 
+                    // LEEMOS EL NOMBRE DE LA NUEVA COLUMNA
+                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
                     fecha: new Date(record.fecha).toLocaleString()
                 });
             });
@@ -460,7 +467,11 @@
 
             const tipo = document.getElementById('selectTipo').value;
             const recordIdToModify = document.getElementById('recordIdToModify').value;
-            const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); // <-- NUEVO CAMPO
+            const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); 
+
+            // OBTENER EL NOMBRE DEL USUARIO LOGUEADO DESDE LOS METADATOS
+            const userMetadata = currentUser.user_metadata;
+            const userName = userMetadata.nombre_completo || currentUser.email;
             
             let tabla = '';
             let objetoRegistro = {};
@@ -483,8 +494,10 @@
                     muro_id: muroId,
                     capa: capa,
                     estado: esParcial ? 'parcial' : 'completa',
-                    turno: turno, // AÑADIDO
-                    user_id: currentUser.id 
+                    turno: turno, 
+                    user_id: currentUser.id,
+                    // **MODIFICACIÓN CLAVE**: GUARDAR EL NOMBRE DEL METADATO
+                    nombre_usuario: userName 
                 };
 
             } else { // tipo === 'cancha'
@@ -499,8 +512,10 @@
                     pileta: pileta,
                     numero: cancha,
                     material: material,
-                    turno: turno, // AÑADIDO
-                    user_id: currentUser.id 
+                    turno: turno, 
+                    user_id: currentUser.id,
+                    // **MODIFICACIÓN CLAVE**: GUARDAR EL NOMBRE DEL METADATO
+                    nombre_usuario: userName 
                 };
             }
             
@@ -539,7 +554,7 @@
             renderizarDatos(); 
         }
         
-        // --- LIMPIEZA DE DB (ADMIN) ---
+        // --- RESTO DE LAS FUNCIONES (MANTIENEN LA LÓGICA CORRECTA) ---
 
         async function limpiarDB() {
             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para realizar esta acción.");
@@ -565,8 +580,6 @@
             renderizarDatos(); 
             mostrarToast("Todos los datos han sido eliminados.", 'red');
         }
-
-        // --- ELIMINACIÓN INDIVIDUAL ---
 
         async function eliminarRegistroMuro(zona, muroId, recordId, shouldRerender = true) {
             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
@@ -607,8 +620,6 @@
                 mostrarToast("Registro de cancha eliminado correctamente.", 'red');
             }
         }
-        
-        // --- FUNCIONES DE RENDERIZADO Y UTILIDADES (Ajustadas para mostrar Turno y Usuario) ---
         
         function compareAlphanumeric(a, b) {
             const regex = /(\d+)|(\D+)/g;
@@ -666,8 +677,8 @@
                             ? 'text-mining-success bg-green-900/10 border-green-800' 
                             : 'text-mining-warning bg-yellow-900/10 border-yellow-800';
                         
-                        // Obtener solo el nombre de usuario (parte antes del @)
-                        const userDisplay = capa.usuarioEmail ? capa.usuarioEmail.split('@')[0].toUpperCase() : 'N/A';
+                        // RENDERIZANDO EL NOMBRE DE USUARIO
+                        const userDisplay = capa.nombreUsuario || 'SIN REGISTRO';
                         
                         html += `
                             <div class="flex items-center justify-between px-4 py-3 hover:bg-mining-700/20 transition-colors">
@@ -675,8 +686,8 @@
                                     <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})</span>
                                     
                                     <span class="text-xs text-slate-500 mt-1">
-                                        <i class="fa-solid fa-user-gear mr-1"></i> ${userDisplay} | 
-                                        <span class="font-bold text-slate-400">${capa.turno}</span>
+                                        <i class="fa-solid fa-user-gear mr-1"></i> 
+                                        <span class="font-bold text-slate-400">${userDisplay}</span> | Turno: ${capa.turno}
                                     </span>
                                     
                                     <span class="text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${capa.fecha}</span>
@@ -713,7 +724,8 @@
                         ? 'bg-blue-900/20 text-blue-300 border-blue-800'
                         : 'bg-orange-900/20 text-orange-300 border-orange-800';
                         
-                    const userDisplay = cancha.usuarioEmail ? cancha.usuarioEmail.split('@')[0].toUpperCase() : 'N/A';
+                    // RENDERIZANDO EL NOMBRE DE USUARIO
+                    const userDisplay = cancha.nombreUsuario || 'SIN REGISTRO';
 
                     html += `
                         <div class="flex items-center justify-between bg-mining-900 p-3 rounded border border-mining-700 hover:bg-mining-700/20 transition-colors">
@@ -725,8 +737,8 @@
                                 </span>
                                 
                                 <span class="block text-xs text-slate-500 mt-1">
-                                    <i class="fa-solid fa-user-gear mr-1"></i> ${userDisplay} | 
-                                    <span class="font-bold text-slate-400">${cancha.turno}</span>
+                                    <i class="fa-solid fa-user-gear mr-1"></i> 
+                                    <span class="font-bold text-slate-400">${userDisplay}</span> | Turno: ${cancha.turno}
                                 </span>
 
                                 <span class="block text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${cancha.fecha}</span>
@@ -752,7 +764,8 @@
             return html;
         }
 
-        // --- Funciones auxiliares (mantienen su lógica) ---
+
+        // --- Funciones auxiliares (se mantienen) ---
 
         function showAlertModal(message) {
             document.getElementById('alertMessage').innerText = message;
