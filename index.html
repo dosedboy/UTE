@@ -476,7 +476,7 @@
 
         /**
          * Lee los datos de Supabase.
-         * Devuelve: { reporteDetallado: { zona: { muros: {}, canchas: [] } }, perfilesMuros: { muro-id: { capasEstado: {} } } }
+         * Devuelve: { reporteDetallado: { zona: { muros: {}, canchas: [], ultimaFecha: Date } }, perfilesMuros: { muro-id: { capasEstado: {} } } }
          */
         async function obtenerDatos() {
             if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {} }; 
@@ -484,9 +484,9 @@
             const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
             const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
             
-            // Ordenar por fecha descendente para que el primer registro sea el último estado
+            // **IMPORTANTE**: La consulta debe ordenar por fecha descendente
             const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
-            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas);
+            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas).order('fecha', { ascending: false });
             
             if (murosError || canchasError) {
                 console.error("Error al obtener datos de Supabase:", murosError || canchasError);
@@ -495,24 +495,34 @@
             
             let datosDB = {}; 
             let perfilesMuros = {}; 
+            
+            // Función auxiliar para actualizar la última fecha de la zona
+            const actualizarUltimaFechaZona = (zona, fechaStr) => {
+                const fecha = new Date(fechaStr);
+                if (!datosDB[zona]) {
+                    datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: fecha };
+                } else if (!datosDB[zona].ultimaFecha || fecha > datosDB[zona].ultimaFecha) {
+                    datosDB[zona].ultimaFecha = fecha;
+                }
+            };
+
 
             // 1. Procesar Muros (Reporte Detallado y Perfiles)
             murosRaw.forEach(record => {
-                // La zona ya está normalizada en la DB (ej: 'MLP2')
                 const zona = record.zona; 
                 const muroId = record.muro_id.toUpperCase();
                 const capa = record.capa.toUpperCase();
                 const recordFecha = new Date(record.fecha);
-                const claveMuro = `${zona} - ${muroId}`; // Clave de Muro: 'MLP2 - M2A'
+                const claveMuro = `${zona} - ${muroId}`; 
                 
+                actualizarUltimaFechaZona(zona, record.fecha); // 🔥 NUEVO: Actualizar fecha de la zona
+
                 // A. Reporte Detallado
-                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
-                if (!datosDB[zona].muros) datosDB[zona].muros = {};
                 if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
 
                 datosDB[zona].muros[muroId].push({
                     id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
-                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString()
+                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString(), fechaRaw: recordFecha 
                 });
                 
                 // B. Perfiles Muros (Lógica para determinar el último estado por capa)
@@ -534,17 +544,18 @@
 
             // 2. Procesar Canchas (Reporte Detallado)
             canchasRaw.forEach(record => {
-                // La zona ya está normalizada en la DB (ej: 'PC3')
                 const zona = record.zona; 
+                
+                actualizarUltimaFechaZona(zona, record.fecha); // 🔥 NUEVO: Actualizar fecha de la zona
 
-                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
+                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: new Date(record.fecha) };
                 if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
 
                 datosDB[zona].canchas.push({
                     id: record.id, pileta: record.pileta.toUpperCase(), numero: record.numero.toUpperCase(),
                     material: record.material, turno: record.turno, 
                     nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
-                    fecha: new Date(record.fecha).toLocaleString()
+                    fecha: new Date(record.fecha).toLocaleString(), fechaRaw: new Date(record.fecha)
                 });
             });
             
@@ -643,6 +654,7 @@
             document.getElementById('cargaTitle').innerText = 'Menú de Carga';
             document.getElementById('modificationHint').classList.add('hidden');
             
+            // Recargar la vista activa para ver el cambio de orden de la tarjeta
             const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
             if (activeTab && activeTab.id !== 'btnCarga') {
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
@@ -694,9 +706,9 @@
 
         async function renderizarDatosReporte() {
             const { reporteDetallado: datosDB } = await obtenerDatos(); 
-            const zonas = Object.keys(datosDB).sort();
-            let totalCount = 0;
+            const zonas = Object.keys(datosDB).sort(); // Ordenar alfabéticamente para filtros
 
+            let totalCount = 0;
             zonas.forEach(zona => {
                 const dataZona = datosDB[zona];
                 if(dataZona.canchas) totalCount += dataZona.canchas.length;
@@ -751,20 +763,47 @@
             }
         }
         
+        /**
+         * Renderiza el contenido del dashboard, incluyendo la nueva lógica de ordenamiento de tarjetas.
+         * 🔥 MODIFICADO AQUÍ
+         */
         function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
             const container = document.getElementById('dashboardContainer');
-            const zonas = zonaSeleccionada === 'TODOS' 
-                ? Object.keys(datosDB).sort() 
-                : [zonaSeleccionada];
             
-            container.innerHTML = ''; 
+            let zonas = Object.keys(datosDB);
 
-            if (zonas.length === 0 || (zonaSeleccionada !== 'TODOS' && !datosDB[zonaSeleccionada])) {
+            if (zonas.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-slate-500 italic">No hay registros cargados aún.</div>`;
+                return;
+            }
+            
+            // 1. FILTRADO (si no es 'TODOS')
+            let zonasAProcesar = zonas;
+            if (zonaSeleccionada !== 'TODOS') {
+                zonasAProcesar = zonas.filter(zona => zona === zonaSeleccionada);
+            }
+            
+            if (zonasAProcesar.length === 0) {
                 container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
                 return;
             }
 
-            zonas.forEach(zona => {
+            // 2. ORDENAMIENTO DE LAS TARJETAS (solo si el filtro es 'TODOS')
+            if (zonaSeleccionada === 'TODOS') {
+                zonasAProcesar.sort((zonaA, zonaB) => {
+                    const fechaA = datosDB[zonaA].ultimaFecha || new Date(0);
+                    const fechaB = datosDB[zonaB].ultimaFecha || new Date(0);
+                    
+                    // Orden descendente (fecha más nueva primero)
+                    return fechaB - fechaA; 
+                });
+            } else {
+                 // Si se selecciona una zona específica, la ordenación no importa, solo se muestra esa.
+            }
+
+            // 3. RENDERIZADO
+            container.innerHTML = ''; 
+            zonasAProcesar.forEach(zona => {
                 const dataZona = datosDB[zona];
                 if (dataZona) {
                     const cardHtml = generarTarjetaZona(zona, dataZona);
@@ -777,7 +816,6 @@
 
         /**
          * Genera el SVG con la forma de tronco de pirámide invertida (muro).
-         * **MODIFICADO:** Ahora usa un reemplazo más robusto para generar IDs SVG.
          */
         function generarSvgMuro(claveMuro) {
             const NUM_CAPAS = 7;
@@ -821,7 +859,7 @@
                 { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' },
             ];
 
-            // 📢 CORRECCIÓN APLICADA AQUÍ: Generar un ID limpio y consistente.
+            // Generar un ID limpio y consistente.
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_');
 
 
@@ -881,10 +919,9 @@
 
         /**
          * Aplica color a las capas SVG.
-         * **MODIFICADO:** Ahora usa el mismo reemplazo para buscar IDs SVG.
          */
         function aplicarColorMuro(claveMuro, capasEstado) {
-            // 📢 CORRECCIÓN APLICADA AQUÍ: Usar la misma lógica de ID limpio.
+            // Usar la misma lógica de ID limpio.
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
 
             Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
@@ -1077,11 +1114,13 @@
             const tieneCanchas = dataZona.canchas && dataZona.canchas.length > 0;
             const totalMuros = tieneMuros ? Object.keys(dataZona.muros).length : 0;
             const totalCanchas = tieneCanchas ? dataZona.canchas.length : 0;
+            const ultimaFecha = dataZona.ultimaFecha ? `(Última carga: ${dataZona.ultimaFecha.toLocaleDateString()} ${dataZona.ultimaFecha.toLocaleTimeString()})` : '';
 
             let html = `
                 <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in">
                     <div class="bg-gradient-to-r from-mining-700 to-mining-800 p-4 border-b border-mining-700 flex justify-between items-center">
                         <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-map-location-dot mr-2 text-slate-400"></i> ${zona}</h3>
+                        <span class="text-xs text-slate-400 italic">${ultimaFecha}</span>
                     </div>
                     <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
             `;
@@ -1099,12 +1138,8 @@
                             <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
                             <div class="divide-y divide-mining-700">`;
                     
-                    // MODIFICACIÓN APLICADA: Ordenar registros de Muro por fecha DESC
-                    dataZona.muros[muroNombre].sort((a, b) => {
-                        const dateA = new Date(a.fecha);
-                        const dateB = new Date(b.fecha);
-                        return dateB - dateA; 
-                    }).forEach(capa => {
+                    // Ordenar registros de Muro por fecha DESC (ya estaba implementado)
+                    dataZona.muros[muroNombre].sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(capa => {
                         const colorClass = capa.estado === 'completa' 
                             ? 'text-mining-success bg-green-900/10 border-green-800' 
                             : 'text-mining-warning bg-yellow-900/10 border-yellow-800';
@@ -1150,12 +1185,8 @@
             if (tieneCanchas) {
                 html += `<div class="space-y-2">`;
                 
-                // MODIFICACIÓN APLICADA: Ordenar registros de Cancha por fecha DESC
-                dataZona.canchas.sort((a, b) => {
-                    const dateA = new Date(a.fecha);
-                    const dateB = new Date(b.fecha);
-                    return dateB - dateA; 
-                }).forEach(cancha => {
+                // Ordenar registros de Cancha por fecha DESC (ya estaba implementado)
+                dataZona.canchas.sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(cancha => {
                     const nombreCompleto = `${cancha.pileta} / ${cancha.numero}`;
                     const materialColorClass = cancha.material === 'FINO'
                         ? 'bg-blue-900/20 text-blue-300 border-blue-800'
