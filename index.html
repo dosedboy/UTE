@@ -339,12 +339,11 @@
 
         /**
          * Verifica si un registro fue cargado en las últimas 24 horas.
-         * *** CORRECCIÓN ***: Usa el string ISO Date para crear el objeto Date.
          * @param {string} dateString - El string de fecha (ej: "2025-11-27T20:29:50.000Z").
          * @returns {boolean} True si es nuevo, False si es antiguo.
          */
         function esRegistroNuevo(dateString) {
-            // Si la entrada es un string de fecha (ISO 8601 o similar)
+            // Se usa el string ISO Date para crear el objeto Date.
             const fechaRegistro = new Date(dateString); 
             const ahora = new Date();
             // 24 horas en milisegundos: 24 * 60 * 60 * 1000
@@ -368,6 +367,7 @@
             };
             const nav = document.getElementById('mainNav');
 
+            // Ocultar todas las vistas
             Object.values(views).forEach(v => {
                 v.classList.replace('flex', 'hidden');
                 v.classList.replace('block', 'hidden');
@@ -381,6 +381,7 @@
                 views[vista].classList.replace('hidden', 'block');
             }
             
+            // Renderizar datos al cambiar a la vista de visualización
             if (vista === 'visualizacion') {
                 renderizarDatosReporte(); 
             } else if (vista === 'visualizacionMuros') {
@@ -391,6 +392,7 @@
         document.addEventListener('DOMContentLoaded', initializeApp);
 
         async function initializeApp() {
+            // Ocultar todas las vistas al inicio
             document.getElementById('mainNav').classList.add('hidden');
             document.getElementById('viewCarga').classList.add('hidden');
             document.getElementById('viewVisualizacion').classList.add('hidden');
@@ -500,6 +502,7 @@
 
         /**
          * Lee los datos de Supabase.
+         * Se aplica ordenamiento DESCENDENTE por `created_at` en la consulta (más nuevo primero).
          * Devuelve: { reporteDetallado: { zona: { muros: {}, canchas: [] } }, perfilesMuros: { muro-id: { capasEstado: {} } } }
          */
         async function obtenerDatos() {
@@ -554,6 +557,7 @@
                 });
                 
                 // B. Perfiles Muros (Lógica para determinar el último estado por capa)
+                // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
                 if (!perfilesMuros[claveMuro]) {
                     perfilesMuros[claveMuro] = {
                         zona: zona, 
@@ -561,7 +565,6 @@
                     };
                 }
                 
-                // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
                 if (!perfilesMuros[claveMuro].capasEstado[capa]) {
                     perfilesMuros[claveMuro].capasEstado[capa] = {
                         estado: record.estado,
@@ -629,7 +632,6 @@
                     turno: turno, 
                     user_id: currentUser.id,
                     nombre_usuario: userName,
-                    // created_at se genera automáticamente en la DB, no es necesario enviarlo
                 };
 
             } else { // tipo === 'cancha'
@@ -650,20 +652,17 @@
                     turno: turno, 
                     user_id: currentUser.id,
                     nombre_usuario: userName,
-                    // created_at se genera automáticamente en la DB, no es necesario enviarlo
                 };
             }
             
             let error = null;
             if (isUpdate) {
-                // Al actualizar, también se actualiza la columna 'updated_at' (si existe) pero 'created_at' queda igual.
                 const result = await supabaseClient
                     .from(tabla)
                     .update(objetoRegistro)
                     .eq('id', recordIdToModify);
                 error = result.error;
             } else {
-                // Al insertar, 'created_at' se llena con la hora actual.
                 const result = await supabaseClient
                     .from(tabla)
                     .insert([objetoRegistro]);
@@ -678,6 +677,7 @@
 
             mostrarToast(isUpdate ? "Registro modificado correctamente." : "Datos guardados correctamente", isUpdate ? 'yellow' : 'blue');
             
+            // Limpiar formulario y recargar vista si es necesario
             e.target.reset();
             document.getElementById('recordIdToModify').value = "";
             document.getElementById('selectTipo').value = "";
@@ -685,7 +685,7 @@
             document.getElementById('cargaTitle').innerText = 'Menú de Carga';
             document.getElementById('modificationHint').classList.add('hidden');
             
-            const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+            const activeTab = document.querySelector('#mainNav button.bg-mining-accent');
             if (activeTab && activeTab.id !== 'btnCarga') {
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
                 cambiarPestana(tabName);
@@ -706,7 +706,7 @@
             }
 
             if (shouldRerender) {
-                const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+                const activeTab = document.querySelector('#mainNav button.bg-mining-accent');
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
                 cambiarPestana(tabName); 
                 mostrarToast("Registro de muro eliminado correctamente.", 'red');
@@ -726,7 +726,7 @@
                 return showAlertModal(`Error al eliminar cancha: ${error.message}`);
             }
 
-            const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+            const activeTab = document.querySelector('#mainNav button.bg-mining-accent');
             const tabName = activeTab.id.replace('btn', '').toLowerCase();
             cambiarPestana(tabName); 
             mostrarToast("Registro de cancha eliminado correctamente.", 'red');
@@ -805,8 +805,7 @@
                 const dataZona = datosDB[zona];
                 if (dataZona) {
                     
-                    // **ORDENAMIENTO MUROS Y CANCHAS EN LA TARJETA**
-                    // Ordenar los registros de cada muro por fecha descendente antes de enviarlos a generarTarjetaZona
+                    // **ORDENAMIENTO MUROS Y CANCHAS EN LA TARJETA (Asegurar ordenamiento local si es necesario)**
                     if (dataZona.muros) {
                         Object.keys(dataZona.muros).forEach(muroId => {
                             // Ordenar registros de muro por fecha ISO (más reciente primero)
@@ -814,7 +813,6 @@
                         });
                     }
                     
-                    // Ordenar los registros de canchas por fecha descendente (más reciente primero)
                     if (dataZona.canchas) {
                         dataZona.canchas.sort((a, b) => new Date(b.isoDate) - new Date(a.isoDate));
                     }
@@ -831,7 +829,7 @@
             }
         }
 
-        // --- Funciones de RENDERIZADO de Muros (NUEVAS/MODIFICADAS) ---
+        // --- Funciones de RENDERIZADO de Muros (GRÁFICOS) ---
 
         function generarSvgMuro(claveMuro) {
             const NUM_CAPAS = 7;
@@ -1046,6 +1044,7 @@
                     `;
                     dashboard.innerHTML += html;
                     
+                    // Asegurar que la aplicación de color se ejecute después de que el HTML esté en el DOM
                     setTimeout(() => aplicarColorMuro(claveMuro, dataMuro.capasEstado), 0);
                 });
             }
