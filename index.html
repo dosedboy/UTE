@@ -75,7 +75,7 @@
                         <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
                     </button>
                     <button onclick="cambiarPestana('visualizacionMuros')" id="btnVerMuros" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-area mr-2"></i> Gráfico Muros
+                        <i class="fa-solid fa-chart-area mr-2"></i> Muros (Perfil)
                     </button>
                 </div>
                 
@@ -470,7 +470,7 @@
         }
         
         // =========================================================================
-        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - Modificada la Zona en Guardar ===
+        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - NORMALIZACIÓN Y ELIMINACIÓN ===
         // =========================================================================
 
         /**
@@ -669,6 +669,25 @@
                 mostrarToast("Registro de muro eliminado correctamente.", 'red');
             }
         }
+        
+        async function eliminarRegistroCancha(zona, recordId) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+            
+            const { error } = await supabaseClient
+                .from('canchas_registros')
+                .delete()
+                .eq('id', recordId); 
+            
+            if (error) {
+                console.error("Error al eliminar cancha:", error);
+                return showAlertModal(`Error al eliminar cancha: ${error.message}`);
+            }
+
+            const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+            const tabName = activeTab.id.replace('btn', '').toLowerCase();
+            cambiarPestana(tabName); 
+            mostrarToast("Registro de cancha eliminado correctamente.", 'red');
+        }
 
         // --- Funciones de RENDERIZADO de Reporte Detallado ---
 
@@ -788,7 +807,7 @@
                 const x1_bottom = (width - figura_ancho_bottom) / 2;
                 const x2_bottom = x1_bottom + figura_ancho_bottom;
                 
-                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
+                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y1_top} Z`);
             }
 
             const NOMBRES_CAPAS_SVG = [
@@ -1188,6 +1207,17 @@
 
             modal.classList.replace('hidden', 'flex');
         }
+        
+        // **NUEVA FUNCIÓN DE ELIMINACIÓN DE CANCHAS**
+        function mostrarModalEliminarCancha(zona, recordId, nombreCompleto) {
+            mostrarActionModal(
+                'Eliminar Registro',
+                `¿Deseas eliminar el registro de cancha **${nombreCompleto}** en la zona **${zona}**?`,
+                'Eliminar',
+                // Llama a la función de eliminación de canchas
+                () => eliminarRegistroCancha(zona, recordId) 
+            );
+        }
 
         function mostrarModalLimpiarDB() {
             mostrarActionModal(
@@ -1204,15 +1234,6 @@
                 `¿Deseas eliminar el registro de muro **${muroId}** en la zona **${zona}**?`,
                 'Eliminar',
                 () => eliminarRegistroMuro(zona, muroId, recordId)
-            );
-        }
-        
-        function mostrarModalEliminarCancha(zona, recordId, nombreCompleto) {
-            mostrarActionModal(
-                'Eliminar Registro',
-                `¿Deseas eliminar el registro de cancha **${nombreCompleto}** en la zona **${zona}**?`,
-                'Eliminar',
-                () => eliminarRegistroCancha(zona, recordId)
             );
         }
         
