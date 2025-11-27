@@ -53,7 +53,7 @@
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
         
-        /* 🔥 NUEVO ESTILO: Etiqueta "NUEVO" */
+        /* 🔥 ESTILO: Etiqueta "NUEVO" */
         .tag-nuevo {
             background-color: #ef4444; /* Rojo 500 */
             color: white;
@@ -351,6 +351,9 @@
             '4': 'capa-4', '5': 'capa-5', '6': 'capa-6', 
         };
         
+        // El orden de las capas de abajo hacia arriba (útil para la lógica jerárquica)
+        const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
+        
         // =========================================================================
         // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA Y CÁLCULO DE TIEMPO ===
         // =========================================================================
@@ -369,16 +372,11 @@
         }
         
         /**
-         * 🔥 NUEVA FUNCIÓN: Verifica si la fecha de carga es menor a 24 horas.
-         * @param {Date} recordFecha - La fecha y hora de la carga del registro.
-         * @returns {boolean} True si es nuevo (dentro de las últimas 24h), False en caso contrario.
+         * Verifica si la fecha de carga es menor a 24 horas.
          */
         function esRegistroNuevo(recordFecha) {
             const now = new Date();
-            // Tiempo en milisegundos para 24 horas: 24 * 60 * 60 * 1000
             const ONE_DAY_MS = 86400000; 
-            
-            // La diferencia (en milisegundos) entre la hora actual y la hora del registro
             const diff = now.getTime() - recordFecha.getTime();
             
             return diff <= ONE_DAY_MS;
@@ -841,7 +839,7 @@
             });
         }
         
-        // --- Funciones de RENDERIZADO de Muros (NUEVAS/MODIFICADAS) ---
+        // --- Funciones de RENDERIZADO de Muros (MODIFICADAS) ---
 
         /**
          * Genera el SVG con la forma de tronco de pirámide invertida (muro).
@@ -947,26 +945,41 @@
         }
 
         /**
-         * Aplica color a las capas SVG.
+         * Aplica color a las capas SVG, aplicando la regla de herencia (si la Capa 6 está completa, 
+         * todas las inferiores deben estar completas - verde).
+         * 🔥 LÓGICA MODIFICADA AQUÍ
          */
         function aplicarColorMuro(claveMuro, capasEstado) {
-            // Usar la misma lógica de ID limpio.
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
+            
+            // 1. Determinar si la capa más alta (Capa 6) está completa
+            const estadoCapa6 = capasEstado['6']?.estado;
+            const esCapa6Completa = estadoCapa6 === 'completa';
 
-            Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
+            // 2. Recorrer todas las capas en el orden (Basal a 6)
+            CAPAS_ORDENADAS.forEach((dbKey, index) => {
                 const svgId = CAPA_SVG_MAP[dbKey];
-                
-                // Construir el ID del elemento SVG que se va a buscar
                 const elementId = `${safeClaveMuro}-${svgId}`;
                 const capaElement = document.getElementById(elementId);
                 
                 if (capaElement) {
                     capaElement.classList.remove('color-parcial', 'color-completa');
-
-                    const estado = capasEstado[dbKey.toUpperCase()]?.estado;
-                    if (estado === 'parcial') {
+                    
+                    let estadoFinal = null;
+                    
+                    // 3. Aplicar Lógica de Herencia/Jerarquía
+                    // Si la Capa 6 es COMPLETA, TODAS las capas son visualmente 'completa'
+                    if (esCapa6Completa) {
+                        estadoFinal = 'completa';
+                    } else {
+                        // Si Capa 6 no es completa, usamos el estado registrado para esa capa
+                        estadoFinal = capasEstado[dbKey.toUpperCase()]?.estado;
+                    }
+                    
+                    // 4. Aplicar el color visual
+                    if (estadoFinal === 'parcial') {
                         capaElement.classList.add('color-parcial');
-                    } else if (estado === 'completa') {
+                    } else if (estadoFinal === 'completa') {
                         capaElement.classList.add('color-completa');
                     }
                 }
@@ -1073,7 +1086,7 @@
             }
         }
         
-        // --- Funciones de RENDERIZADO COMUNES (MODIFICADAS) ---
+        // --- Funciones de RENDERIZADO COMUNES (SIN CAMBIOS) ---
 
         /**
          * Genera un botón de filtro con el manejador de clic correcto.
@@ -1140,7 +1153,6 @@
 
         /**
          * Genera la tarjeta de zona e incluye la lógica del tag "NUEVO" para cada registro.
-         * 🔥 MODIFICADO AQUÍ
          */
         function generarTarjetaZona(zona, dataZona) {
             const tieneMuros = dataZona.muros && Object.keys(dataZona.muros).length > 0;
@@ -1179,7 +1191,6 @@
                         
                         const userDisplay = capa.nombreUsuario || 'SIN REGISTRO';
                         
-                        // 🔥 LÓGICA DEL TAG "NUEVO"
                         const tagNuevo = esRegistroNuevo(capa.fechaRaw) 
                             ? '<span class="tag-nuevo">NUEVO</span>' 
                             : '';
@@ -1232,7 +1243,6 @@
                         
                     const userDisplay = cancha.nombreUsuario || 'SIN REGISTRO';
                     
-                    // 🔥 LÓGICA DEL TAG "NUEVO"
                     const tagNuevo = esRegistroNuevo(cancha.fechaRaw) 
                         ? '<span class="tag-nuevo ml-2">NUEVO</span>' 
                         : '';
