@@ -52,6 +52,20 @@
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* 🔥 NUEVO ESTILO: Etiqueta "NUEVO" */
+        .tag-nuevo {
+            background-color: #ef4444; /* Rojo 500 */
+            color: white;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem; /* texto muy pequeño */
+            font-weight: bold;
+            line-height: 1;
+            margin-left: 8px;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body class="bg-mining-900 text-slate-200 min-h-screen flex flex-col">
@@ -338,7 +352,7 @@
         };
         
         // =========================================================================
-        // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA (PARA INDISTINGUIR GUIONES) ===
+        // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA Y CÁLCULO DE TIEMPO ===
         // =========================================================================
 
         /**
@@ -352,6 +366,22 @@
             let texto = zona.toUpperCase();
             // 2. Eliminar todo lo que no sea una letra (A-Z) o un número (0-9)
             return texto.replace(/[^A-Z0-9]/g, ''); 
+        }
+        
+        /**
+         * 🔥 NUEVA FUNCIÓN: Verifica si la fecha de carga es menor a 24 horas.
+         * @param {Date} recordFecha - La fecha y hora de la carga del registro.
+         * @returns {boolean} True si es nuevo (dentro de las últimas 24h), False en caso contrario.
+         */
+        function esRegistroNuevo(recordFecha) {
+            const now = new Date();
+            // Tiempo en milisegundos para 24 horas: 24 * 60 * 60 * 1000
+            const ONE_DAY_MS = 86400000; 
+            
+            // La diferencia (en milisegundos) entre la hora actual y la hora del registro
+            const diff = now.getTime() - recordFecha.getTime();
+            
+            return diff <= ONE_DAY_MS;
         }
 
         // =========================================================================
@@ -515,7 +545,7 @@
                 const recordFecha = new Date(record.fecha);
                 const claveMuro = `${zona} - ${muroId}`; 
                 
-                actualizarUltimaFechaZona(zona, record.fecha); // 🔥 NUEVO: Actualizar fecha de la zona
+                actualizarUltimaFechaZona(zona, record.fecha); // Actualizar fecha de la zona
 
                 // A. Reporte Detallado
                 if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
@@ -546,7 +576,7 @@
             canchasRaw.forEach(record => {
                 const zona = record.zona; 
                 
-                actualizarUltimaFechaZona(zona, record.fecha); // 🔥 NUEVO: Actualizar fecha de la zona
+                actualizarUltimaFechaZona(zona, record.fecha); // Actualizar fecha de la zona
 
                 if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: new Date(record.fecha) };
                 if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
@@ -764,8 +794,7 @@
         }
         
         /**
-         * Renderiza el contenido del dashboard, incluyendo la nueva lógica de ordenamiento de tarjetas.
-         * 🔥 MODIFICADO AQUÍ
+         * Renderiza el contenido del dashboard, con ordenamiento por fecha de última carga.
          */
         function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
             const container = document.getElementById('dashboardContainer');
@@ -1109,6 +1138,10 @@
             return 0;
         }
 
+        /**
+         * Genera la tarjeta de zona e incluye la lógica del tag "NUEVO" para cada registro.
+         * 🔥 MODIFICADO AQUÍ
+         */
         function generarTarjetaZona(zona, dataZona) {
             const tieneMuros = dataZona.muros && Object.keys(dataZona.muros).length > 0;
             const tieneCanchas = dataZona.canchas && dataZona.canchas.length > 0;
@@ -1138,7 +1171,7 @@
                             <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
                             <div class="divide-y divide-mining-700">`;
                     
-                    // Ordenar registros de Muro por fecha DESC (ya estaba implementado)
+                    // Ordenar registros de Muro por fecha DESC
                     dataZona.muros[muroNombre].sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(capa => {
                         const colorClass = capa.estado === 'completa' 
                             ? 'text-mining-success bg-green-900/10 border-green-800' 
@@ -1146,10 +1179,15 @@
                         
                         const userDisplay = capa.nombreUsuario || 'SIN REGISTRO';
                         
+                        // 🔥 LÓGICA DEL TAG "NUEVO"
+                        const tagNuevo = esRegistroNuevo(capa.fechaRaw) 
+                            ? '<span class="tag-nuevo">NUEVO</span>' 
+                            : '';
+                        
                         html += `
                             <div class="flex items-center justify-between px-4 py-3 hover:bg-mining-700/20 transition-colors">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})</span>
+                                    <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})${tagNuevo}</span>
                                     
                                     <span class="text-xs text-slate-500 mt-1">
                                         <i class="fa-solid fa-user-gear mr-1"></i> 
@@ -1185,7 +1223,7 @@
             if (tieneCanchas) {
                 html += `<div class="space-y-2">`;
                 
-                // Ordenar registros de Cancha por fecha DESC (ya estaba implementado)
+                // Ordenar registros de Cancha por fecha DESC
                 dataZona.canchas.sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(cancha => {
                     const nombreCompleto = `${cancha.pileta} / ${cancha.numero}`;
                     const materialColorClass = cancha.material === 'FINO'
@@ -1193,11 +1231,16 @@
                         : 'bg-orange-900/20 text-orange-300 border-orange-800';
                         
                     const userDisplay = cancha.nombreUsuario || 'SIN REGISTRO';
+                    
+                    // 🔥 LÓGICA DEL TAG "NUEVO"
+                    const tagNuevo = esRegistroNuevo(cancha.fechaRaw) 
+                        ? '<span class="tag-nuevo ml-2">NUEVO</span>' 
+                        : '';
 
                     html += `
                         <div class="flex items-center justify-between bg-mining-900 p-3 rounded border border-mining-700 hover:bg-mining-700/20 transition-colors">
                             <div class="flex-1 min-w-0">
-                                <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}</span>
+                                <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}${tagNuevo}</span>
                                 
                                 <span class="text-xs px-2 py-0.5 rounded-full font-bold border ${materialColorClass} inline-block mt-1 mr-2">
                                     ${cancha.material}
