@@ -241,6 +241,9 @@
                         <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
                     </button>
                     
+                    <button type="button" onclick="cancelarModificacion()" id="cancelModificationBtn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-all active:scale-95 flex justify-center items-center gap-2 mt-3 hidden">
+                        <i class="fa-solid fa-xmark"></i> Cancelar Modificación
+                    </button>
                     <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
                         Borrar todos los datos (Admin)
                     </button>
@@ -557,11 +560,11 @@
                 if (!perfilesMuros[claveMuro]) {
                     perfilesMuros[claveMuro] = {
                         zona: zona, 
-                        ultimaFecha: recordFecha, // 🔥 MODIFICACIÓN: Incluir la última fecha aquí
+                        ultimaFecha: recordFecha, 
                         capasEstado: {} 
                     };
                 } else if (recordFecha > perfilesMuros[claveMuro].ultimaFecha) {
-                    perfilesMuros[claveMuro].ultimaFecha = recordFecha; // 🔥 MODIFICACIÓN: Actualizar la última fecha del muro
+                    perfilesMuros[claveMuro].ultimaFecha = recordFecha; 
                 }
                 
                 // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
@@ -678,12 +681,8 @@
 
             mostrarToast(isUpdate ? "Registro modificado correctamente." : "Datos guardados correctamente", isUpdate ? 'yellow' : 'blue');
             
-            e.target.reset();
-            document.getElementById('recordIdToModify').value = "";
-            document.getElementById('selectTipo').value = "";
-            document.getElementById('dataForm').classList.add('hidden');
-            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
-            document.getElementById('modificationHint').classList.add('hidden');
+            // 🔥 MODIFICACIÓN JS: Llamar a cancelarModificacion después de guardar 🔥
+            cancelarModificacion();
             
             // Recargar la vista activa para ver el cambio de orden de la tarjeta
             const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
@@ -954,9 +953,6 @@
 
         /**
          * Aplica color a las capas SVG, aplicando la regla de herencia.
-         * 1. Si Capa 6 es completa, todas las inferiores son completas (verde).
-         * 2. Si una capa es parcial, todas las inferiores a ella son completas (verde).
-         * 3. La capa de mayor índice con registro (parcial o completa) define el límite.
          */
         function aplicarColorMuro(claveMuro, capasEstado) {
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
@@ -1074,7 +1070,7 @@
             const murosFiltrados = Object.entries(muros)
                 .filter(([clave, data]) => zonaSeleccionada === 'TODOS' || data.zona === zonaSeleccionada)
                 .sort(([, dataA], [, dataB]) => {
-                    // 🔥 MODIFICACIÓN: Ordenar por fecha más reciente primero (DESCENDENTE)
+                    // Ordenar por fecha más reciente primero (DESCENDENTE)
                     const fechaA = dataA.ultimaFecha || new Date(0);
                     const fechaB = dataB.ultimaFecha || new Date(0);
                     
@@ -1403,6 +1399,7 @@
                 document.getElementById('dataForm').reset();
                 document.getElementById('cargaTitle').innerText = 'Menú de Carga';
                 document.getElementById('modificationHint').classList.add('hidden');
+                document.getElementById('cancelModificationBtn').classList.add('hidden'); // Ocultar si no hay edición
             }
 
             if (tipo === 'muro') {
@@ -1426,6 +1423,31 @@
                 document.getElementById('canchaNumero').setAttribute('required', '');
             }
         }
+        
+        // 🔥 MODIFICACIÓN JS: FUNCIÓN CANCELAR MODIFICACIÓN 🔥
+        /**
+         * Cancela el modo de modificación y vuelve al modo de carga normal.
+         */
+        function cancelarModificacion() {
+            // 1. Resetear el formulario y los campos ocultos
+            document.getElementById('dataForm').reset();
+            document.getElementById('recordIdToModify').value = "";
+            document.getElementById('originalZona').value = "";
+            
+            // 2. Ocultar el botón de cancelar y la pista de modificación
+            document.getElementById('cancelModificationBtn').classList.add('hidden');
+            document.getElementById('modificationHint').classList.add('hidden');
+            
+            // 3. Restaurar el título
+            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+            
+            // 4. Ocultar los campos de Muro/Cancha y el formulario principal, y resetear el selector de tipo
+            document.getElementById('fieldsMuro').classList.add('hidden');
+            document.getElementById('fieldsCancha').classList.add('hidden');
+            document.getElementById('dataForm').classList.add('hidden');
+            document.getElementById('selectTipo').value = "";
+        }
+        // FIN MODIFICACIÓN JS
         
         /**
          * Lógica de edición para registros de Muros.
@@ -1453,6 +1475,7 @@
             // 3. Rellenar los campos
             document.getElementById('cargaTitle').innerText = 'Modificar Registro (Muro)';
             document.getElementById('modificationHint').classList.remove('hidden');
+            document.getElementById('cancelModificationBtn').classList.remove('hidden'); // 🔥 Mostrar Cancelar
             
             document.getElementById('recordIdToModify').value = data.id;
             document.getElementById('originalZona').value = data.zona; 
@@ -1497,6 +1520,7 @@
             // 3. Rellenar los campos
             document.getElementById('cargaTitle').innerText = 'Modificar Registro (Cancha)';
             document.getElementById('modificationHint').classList.remove('hidden');
+            document.getElementById('cancelModificationBtn').classList.remove('hidden'); // 🔥 Mostrar Cancelar
 
             document.getElementById('recordIdToModify').value = data.id;
             document.getElementById('originalZona').value = data.zona;
