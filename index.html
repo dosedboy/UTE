@@ -218,7 +218,7 @@
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                                     <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div>
+                                }
                             </div>
                         </div>
                     </div>
@@ -312,7 +312,7 @@
             <p id="alertMessage" class="text-sm text-slate-300 mb-6"></p>
             <div class="flex justify-end">
                 <button onclick="hideAlertModal()" class="px-4 py-2 text-sm font-medium rounded-lg bg-mining-accent hover:bg-blue-600 text-white transition-colors">Aceptar</button>
-            </div>
+            }
         </div>
     </div>
 
@@ -415,7 +415,7 @@
                 
                 // Mostrar Navegación y la vista inicial (carga)
                 document.getElementById('mainNav').classList.remove('hidden');
-                cambiarVista('carga'); 
+                cambiarPestana('carga'); 
             }
         }
         
@@ -502,7 +502,7 @@
                 const muroId = record.muro_id.toUpperCase();
                 const capa = record.capa.toUpperCase();
                 const recordFecha = new Date(record.fecha);
-                const claveMuro = `${zona} - ${muroId}`; 
+                const claveMuro = `${zona} - ${muroId}`; // Clave de Muro: 'MLP2 - M2A'
                 
                 // A. Reporte Detallado
                 if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
@@ -776,7 +776,7 @@
 
         /**
          * Genera el SVG con la forma de tronco de pirámide invertida (muro).
-         * **MODIFICADO:** Título centrado.
+         * **MODIFICADO:** Ahora usa un reemplazo más robusto para generar IDs SVG.
          */
         function generarSvgMuro(claveMuro) {
             const NUM_CAPAS = 7;
@@ -807,7 +807,7 @@
                 const x1_bottom = (width - figura_ancho_bottom) / 2;
                 const x2_bottom = x1_bottom + figura_ancho_bottom;
                 
-                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y1_top} Z`);
+                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
             }
 
             const NOMBRES_CAPAS_SVG = [
@@ -820,7 +820,8 @@
                 { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' },
             ];
 
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+            // 📢 CORRECCIÓN APLICADA AQUÍ: Generar un ID limpio y consistente.
+            const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_');
 
 
             let svgContent = `<svg viewBox="0 0 ${width} ${height}" class="w-full" style="max-width: ${width}px; margin: 0 auto; display: block;">`;
@@ -844,7 +845,7 @@
             NOMBRES_CAPAS_SVG.forEach((capaInfo, i) => {
                 svgContent += `
                     <path 
-                        id="${safeClaveMuro}-${capaInfo.id.replace(/\s/g, '_')}" 
+                        id="${safeClaveMuro}-${capaInfo.id}" 
                         d="${capasPuntos[i]}" 
                         class="svg-capa"
                         data-capa-db="${capaInfo.dbKey}"
@@ -877,12 +878,18 @@
             return svgContent;
         }
 
+        /**
+         * Aplica color a las capas SVG.
+         * **MODIFICADO:** Ahora usa el mismo reemplazo para buscar IDs SVG.
+         */
         function aplicarColorMuro(claveMuro, capasEstado) {
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+            // 📢 CORRECCIÓN APLICADA AQUÍ: Usar la misma lógica de ID limpio.
+            const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
 
             Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
                 const svgId = CAPA_SVG_MAP[dbKey];
                 
+                // Construir el ID del elemento SVG que se va a buscar
                 const elementId = `${safeClaveMuro}-${svgId}`;
                 const capaElement = document.getElementById(elementId);
                 
@@ -1316,6 +1323,24 @@
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
             }, 3000);
+        }
+        
+        // Función de borrado total (solo para administración/desarrollo)
+        async function limpiarDB() {
+            if (!currentUser || currentUser.email !== 'admin@example.com') {
+                 return showAlertModal("Acceso denegado: Solo el administrador puede ejecutar esta acción.");
+            }
+            
+            const { error: errorMuros } = await supabaseClient.from('muros_registros').delete().neq('id', 0);
+            const { error: errorCanchas } = await supabaseClient.from('canchas_registros').delete().neq('id', 0);
+
+            if (errorMuros || errorCanchas) {
+                console.error("Error al limpiar DB:", errorMuros || errorCanchas);
+                showAlertModal(`Error al limpiar la base de datos: ${errorMuros?.message || errorCanchas?.message}`);
+            } else {
+                mostrarToast("Base de datos limpiada completamente.", 'red');
+                cambiarPestana('visualizacion'); // Recargar las vistas
+            }
         }
     </script>
 </body>
