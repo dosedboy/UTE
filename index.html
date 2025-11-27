@@ -134,7 +134,7 @@
             <div class="max-w-xl mx-auto bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-6 space-y-6">
                 
                 <h2 class="text-2xl font-bold text-white border-b border-mining-700 pb-3" id="cargaTitle">Menú de Carga</h2>
-                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos. El registro anterior se eliminará de su posición original.</p>
+                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos.</p>
                 
                 <div class="space-y-2">
                     <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Registro</label>
@@ -499,7 +499,7 @@
         }
         
         // =========================================================================
-        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - NORMALIZACIÓN Y ELIMINACIÓN ===
+        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - NORMALIZACIÓN Y EDICIÓN ===
         // =========================================================================
 
         /**
@@ -684,9 +684,14 @@
             
             // Recargar la vista activa para ver el cambio de orden de la tarjeta
             const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
-            if (activeTab && activeTab.id !== 'btnCarga') {
+            if (activeTab) {
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
-                cambiarPestana(tabName);
+                // Si estamos en la pestaña de carga, recargamos la visualización detallada por defecto.
+                if (tabName === 'carga') { 
+                    cambiarPestana('visualizacion');
+                } else {
+                    cambiarPestana(tabName);
+                }
             }
         }
         
@@ -839,7 +844,7 @@
             });
         }
         
-        // --- Funciones de RENDERIZADO de Muros (MODIFICADAS) ---
+        // --- Funciones de RENDERIZADO de Muros (Perfil) ---
 
         /**
          * Genera el SVG con la forma de tronco de pirámide invertida (muro).
@@ -949,7 +954,6 @@
          * 1. Si Capa 6 es completa, todas las inferiores son completas (verde).
          * 2. Si una capa es parcial, todas las inferiores a ella son completas (verde).
          * 3. La capa de mayor índice con registro (parcial o completa) define el límite.
-         * 🔥 LÓGICA MODIFICADA 🔥
          */
         function aplicarColorMuro(claveMuro, capasEstado) {
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
@@ -969,8 +973,6 @@
             });
             
             // La Capa de Referencia es el índice de registro más alto, sea parcial o completa.
-            // Si Capa 6 (índice 6) está completa, el índiceReferencia es 6.
-            // Si Capa 3 está parcial y Capa 6 no tiene registro, el índiceReferencia es 3.
             const indiceReferencia = Math.max(indiceCapaParcialMasAlta, indiceCapaCompletaMasAlta);
 
             // 2. Recorrer todas las capas en el orden (Basal a 6)
@@ -986,8 +988,8 @@
 
                     // 3. Aplicar Lógica de Herencia/Jerarquía
                     
-                    // Si la capa actual (index) es igual o menor a la capa de registro más alta (indiceReferencia), 
-                    // debe ser forzada a ser 'completa', cubriendo la Basal, 1, 2, etc.
+                    // Si la capa actual (index) está estrictamente por debajo del registro más alto (indiceReferencia), 
+                    // se muestra como COMPLETA (verde).
                     if (index < indiceReferencia) {
                         estadoVisual = 'completa';
                     }
@@ -1308,7 +1310,7 @@
             return html;
         }
 
-        // --- Funciones auxiliares (se mantienen) ---
+        // --- Funciones auxiliares (Modales y Formulario) ---
 
         function showAlertModal(message) {
             document.getElementById('alertMessage').innerText = message;
@@ -1334,13 +1336,11 @@
             modal.classList.replace('hidden', 'flex');
         }
         
-        // **NUEVA FUNCIÓN DE ELIMINACIÓN DE CANCHAS**
         function mostrarModalEliminarCancha(zona, recordId, nombreCompleto) {
             mostrarActionModal(
                 'Eliminar Registro',
                 `¿Deseas eliminar el registro de cancha **${nombreCompleto}** en la zona **${zona}**?`,
                 'Eliminar',
-                // Llama a la función de eliminación de canchas
                 () => eliminarRegistroCancha(zona, recordId) 
             );
         }
@@ -1382,10 +1382,13 @@
 
             form.classList.remove('hidden');
             
-            document.getElementById('recordIdToModify').value = "";
-            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
-            document.getElementById('modificationHint').classList.add('hidden');
-            
+            // Limpiar y resetear IDs de edición al cambiar el tipo (a menos que se esté en edición)
+            if (!document.getElementById('recordIdToModify').value) {
+                document.getElementById('dataForm').reset();
+                document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+                document.getElementById('modificationHint').classList.add('hidden');
+            }
+
             if (tipo === 'muro') {
                 fieldsMuro.classList.remove('hidden');
                 fieldsCancha.classList.add('hidden');
@@ -1408,14 +1411,85 @@
             }
         }
         
-        function mostrarModalEdicion(zona, muroId, recordId) {
-            showAlertModal("Funcionalidad de Edición Temporalmente Deshabilitada. Para editar, se requiere una consulta individual a Supabase.");
-            return; 
+        /**
+         * Lógica de edición para registros de Muros.
+         */
+        async function mostrarModalEdicion(zona, muroId, recordId) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para editar datos.");
+            
+            // 1. Consultar el registro específico
+            const { data, error } = await supabaseClient
+                .from('muros_registros')
+                .select('id, zona, muro_id, capa, estado, turno')
+                .eq('id', recordId)
+                .single();
+
+            if (error || !data) {
+                console.error("Error al obtener registro para editar:", error);
+                return showAlertModal("No se pudo cargar el registro para edición. Por favor, intente de nuevo.");
+            }
+            
+            // 2. Preparar la vista de Carga
+            cambiarPestana('carga'); 
+            document.getElementById('selectTipo').value = 'muro';
+            toggleForm(); // Muestra el formulario de muro
+
+            // 3. Rellenar los campos
+            document.getElementById('cargaTitle').innerText = 'Modificar Registro (Muro)';
+            document.getElementById('modificationHint').classList.remove('hidden');
+            
+            document.getElementById('recordIdToModify').value = data.id;
+            document.getElementById('originalZona').value = data.zona; 
+            
+            document.getElementById('muroZona').value = data.zona;
+            document.getElementById('muroId').value = data.muro_id;
+            document.getElementById('muroCapa').value = data.capa;
+            document.getElementById('selectTurno').value = data.turno;
+
+            // 4. Rellenar los checkboxes
+            const checkParcial = document.getElementById('checkParcial');
+            const checkCompleta = document.getElementById('checkCompleta');
+            
+            checkParcial.checked = data.estado === 'parcial';
+            checkCompleta.checked = data.estado === 'completa';
+            handleChecks(data.estado); 
         }
 
-        function mostrarModalEdicionCancha(zona, recordId) {
-            showAlertModal("Funcionalidad de Edición Temporalmente Deshabilitada. Para editar, se requiere una consulta individual a Supabase.");
-            return; 
+        /**
+         * Lógica de edición para registros de Canchas.
+         */
+        async function mostrarModalEdicionCancha(zona, recordId) {
+             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para editar datos.");
+            
+            // 1. Consultar el registro específico
+            const { data, error } = await supabaseClient
+                .from('canchas_registros')
+                .select('id, zona, pileta, numero, material, turno')
+                .eq('id', recordId)
+                .single();
+
+            if (error || !data) {
+                console.error("Error al obtener registro para editar:", error);
+                return showAlertModal("No se pudo cargar el registro para edición. Por favor, intente de nuevo.");
+            }
+
+            // 2. Preparar la vista de Carga
+            cambiarPestana('carga');
+            document.getElementById('selectTipo').value = 'cancha';
+            toggleForm(); // Muestra el formulario de cancha
+
+            // 3. Rellenar los campos
+            document.getElementById('cargaTitle').innerText = 'Modificar Registro (Cancha)';
+            document.getElementById('modificationHint').classList.remove('hidden');
+
+            document.getElementById('recordIdToModify').value = data.id;
+            document.getElementById('originalZona').value = data.zona;
+
+            document.getElementById('canchaZona').value = data.zona;
+            document.getElementById('canchaPileta').value = data.pileta;
+            document.getElementById('canchaNumero').value = data.numero;
+            document.getElementById('canchaMaterial').value = data.material;
+            document.getElementById('selectTurno').value = data.turno;
         }
         
         function mostrarToast(message = "Datos guardados correctamente", type = 'blue') {
@@ -1446,6 +1520,7 @@
         
         // Función de borrado total (solo para administración/desarrollo)
         async function limpiarDB() {
+            // Se debe establecer un correo específico para el administrador o un rol de administrador en Supabase
             if (!currentUser || currentUser.email !== 'admin@example.com') {
                  return showAlertModal("Acceso denegado: Solo el administrador puede ejecutar esta acción.");
             }
