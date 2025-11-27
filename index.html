@@ -945,16 +945,33 @@
         }
 
         /**
-         * Aplica color a las capas SVG, aplicando la regla de herencia (si la Capa 6 está completa, 
-         * todas las inferiores deben estar completas - verde).
-         * 🔥 LÓGICA MODIFICADA AQUÍ
+         * Aplica color a las capas SVG, aplicando la regla de herencia.
+         * 1. Si Capa 6 es completa, todas las inferiores son completas (verde).
+         * 2. Si una capa es parcial, todas las inferiores a ella son completas (verde).
+         * 3. La capa de mayor índice con registro (parcial o completa) define el límite.
+         * 🔥 LÓGICA MODIFICADA 🔥
          */
         function aplicarColorMuro(claveMuro, capasEstado) {
             const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
             
-            // 1. Determinar si la capa más alta (Capa 6) está completa
-            const estadoCapa6 = capasEstado['6']?.estado;
-            const esCapa6Completa = estadoCapa6 === 'completa';
+            let indiceCapaParcialMasAlta = -1;
+            let indiceCapaCompletaMasAlta = -1;
+
+            // 1. Identificar el índice de la Capa 'PARCIAL' y 'COMPLETA' más alta.
+            CAPAS_ORDENADAS.forEach((dbKey, index) => {
+                const estado = capasEstado[dbKey.toUpperCase()]?.estado;
+                if (estado === 'parcial') {
+                    indiceCapaParcialMasAlta = Math.max(indiceCapaParcialMasAlta, index);
+                }
+                if (estado === 'completa') {
+                    indiceCapaCompletaMasAlta = Math.max(indiceCapaCompletaMasAlta, index);
+                }
+            });
+            
+            // La Capa de Referencia es el índice de registro más alto, sea parcial o completa.
+            // Si Capa 6 (índice 6) está completa, el índiceReferencia es 6.
+            // Si Capa 3 está parcial y Capa 6 no tiene registro, el índiceReferencia es 3.
+            const indiceReferencia = Math.max(indiceCapaParcialMasAlta, indiceCapaCompletaMasAlta);
 
             // 2. Recorrer todas las capas en el orden (Basal a 6)
             CAPAS_ORDENADAS.forEach((dbKey, index) => {
@@ -965,23 +982,30 @@
                 if (capaElement) {
                     capaElement.classList.remove('color-parcial', 'color-completa');
                     
-                    let estadoFinal = null;
-                    
+                    let estadoVisual = capasEstado[dbKey.toUpperCase()]?.estado; // Estado registrado (puede ser undefined, parcial, o completa)
+
                     // 3. Aplicar Lógica de Herencia/Jerarquía
-                    // Si la Capa 6 es COMPLETA, TODAS las capas son visualmente 'completa'
-                    if (esCapa6Completa) {
-                        estadoFinal = 'completa';
-                    } else {
-                        // Si Capa 6 no es completa, usamos el estado registrado para esa capa
-                        estadoFinal = capasEstado[dbKey.toUpperCase()]?.estado;
+                    
+                    // Si la capa actual (index) es igual o menor a la capa de registro más alta (indiceReferencia), 
+                    // debe ser forzada a ser 'completa', cubriendo la Basal, 1, 2, etc.
+                    if (index < indiceReferencia) {
+                        estadoVisual = 'completa';
+                    }
+                    
+                    // Excepción: Si estamos en la capa más alta que está 'parcial', 
+                    // debe mantener su color amarillo, a menos que haya una capa 'completa' aún más alta.
+                    if (index === indiceCapaParcialMasAlta && indiceCapaParcialMasAlta > indiceCapaCompletaMasAlta) {
+                        estadoVisual = 'parcial';
                     }
                     
                     // 4. Aplicar el color visual
-                    if (estadoFinal === 'parcial') {
+                    if (estadoVisual === 'parcial') {
                         capaElement.classList.add('color-parcial');
-                    } else if (estadoFinal === 'completa') {
+                    } else if (estadoVisual === 'completa') {
                         capaElement.classList.add('color-completa');
                     }
+                    // Si estadoVisual es undefined (sin registro) o si la capa está por encima de indiceReferencia, 
+                    // se queda con el color base (gris).
                 }
             });
         }
