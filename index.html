@@ -486,8 +486,7 @@
             
             // Ordenar por fecha descendente para que el primer registro sea el último estado
             const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
-            // 🛑 MODIFICACIÓN: Aplicar orden descendente también a las canchas
-            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas).order('fecha', { ascending: false });
+            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas);
             
             if (murosError || canchasError) {
                 console.error("Error al obtener datos de Supabase:", murosError || canchasError);
@@ -511,7 +510,6 @@
                 if (!datosDB[zona].muros) datosDB[zona].muros = {};
                 if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
 
-                // Como la consulta ya está ordenada por fecha descendente, el primer push es el más reciente.
                 datosDB[zona].muros[muroId].push({
                     id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
                     nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString()
@@ -542,7 +540,6 @@
                 if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
                 if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
 
-                // Como la consulta ya está ordenada por fecha descendente, el primer push es el más reciente.
                 datosDB[zona].canchas.push({
                     id: record.id, pileta: record.pileta.toUpperCase(), numero: record.numero.toUpperCase(),
                     material: record.material, turno: record.turno, 
@@ -1096,15 +1093,18 @@
                         </h4>`;
             
             if (tieneMuros) {
-                // Ordenar por nombre de muro
                 Object.keys(dataZona.muros).sort().forEach(muroNombre => {
                     html += `
                         <div class="bg-mining-900 rounded border border-mining-700 overflow-hidden">
                             <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
                             <div class="divide-y divide-mining-700">`;
                     
-                    // 🛑 MODIFICACIÓN: Se elimina el .sort(compareAlphanumeric) para que se mantenga el orden descendente por fecha que viene de Supabase.
-                    dataZona.muros[muroNombre].forEach(capa => {
+                    // MODIFICACIÓN APLICADA: Ordenar registros de Muro por fecha DESC
+                    dataZona.muros[muroNombre].sort((a, b) => {
+                        const dateA = new Date(a.fecha);
+                        const dateB = new Date(b.fecha);
+                        return dateB - dateA; 
+                    }).forEach(capa => {
                         const colorClass = capa.estado === 'completa' 
                             ? 'text-mining-success bg-green-900/10 border-green-800' 
                             : 'text-mining-warning bg-yellow-900/10 border-yellow-800';
@@ -1149,8 +1149,13 @@
             
             if (tieneCanchas) {
                 html += `<div class="space-y-2">`;
-                // 🛑 NO SE REQUIERE MODIFICACIÓN: canchasRaw ya está ordenado por fecha descendente.
-                dataZona.canchas.forEach(cancha => {
+                
+                // MODIFICACIÓN APLICADA: Ordenar registros de Cancha por fecha DESC
+                dataZona.canchas.sort((a, b) => {
+                    const dateA = new Date(a.fecha);
+                    const dateB = new Date(b.fecha);
+                    return dateB - dateA; 
+                }).forEach(cancha => {
                     const nombreCompleto = `${cancha.pileta} / ${cancha.numero}`;
                     const materialColorClass = cancha.material === 'FINO'
                         ? 'bg-blue-900/20 text-blue-300 border-blue-800'
