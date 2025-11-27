@@ -557,8 +557,11 @@
                 if (!perfilesMuros[claveMuro]) {
                     perfilesMuros[claveMuro] = {
                         zona: zona, 
+                        ultimaFecha: recordFecha, // 🔥 MODIFICACIÓN: Incluir la última fecha aquí
                         capasEstado: {} 
                     };
+                } else if (recordFecha > perfilesMuros[claveMuro].ultimaFecha) {
+                    perfilesMuros[claveMuro].ultimaFecha = recordFecha; // 🔥 MODIFICACIÓN: Actualizar la última fecha del muro
                 }
                 
                 // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
@@ -1070,7 +1073,20 @@
             
             const murosFiltrados = Object.entries(muros)
                 .filter(([clave, data]) => zonaSeleccionada === 'TODOS' || data.zona === zonaSeleccionada)
-                .sort(([claveA], [claveB]) => compareAlphanumeric({ capa: claveA }, { capa: claveB }));
+                .sort(([, dataA], [, dataB]) => {
+                    // 🔥 MODIFICACIÓN: Ordenar por fecha más reciente primero (DESCENDENTE)
+                    const fechaA = dataA.ultimaFecha || new Date(0);
+                    const fechaB = dataB.ultimaFecha || new Date(0);
+                    
+                    if (fechaB - fechaA !== 0) {
+                        return fechaB - fechaA; // Ordena por fecha
+                    }
+                    
+                    // Si las fechas son iguales, usar el orden alfanumérico como desempate.
+                    const claveA = `${dataA.zona} - ${Object.keys(dataA.capasEstado)[0] || ''}`; // Desempate alfanumérico
+                    const claveB = `${dataB.zona} - ${Object.keys(dataB.capasEstado)[0] || ''}`;
+                    return compareAlphanumeric({ capa: claveA }, { capa: claveB });
+                });
             
             if (murosFiltrados.length === 0) {
                  dashboard.innerHTML = `
