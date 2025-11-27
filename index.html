@@ -75,7 +75,7 @@
                         <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
                     </button>
                     <button onclick="cambiarPestana('visualizacionMuros')" id="btnVerMuros" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-area mr-2"></i> Gráficos de capas
+                        <i class="fa-solid fa-chart-area mr-2"></i> Muros (Perfil)
                     </button>
                 </div>
                 
@@ -254,6 +254,7 @@
                 <div class="text-center py-20 text-slate-600">
                     <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
                     <p>No hay registros cargados aún.</p>
+                    <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
                 </div>
             </div>
 
@@ -1010,6 +1011,23 @@
         // --- Funciones de RENDERIZADO COMUNES (MODIFICADAS) ---
 
         /**
+         * Verifica si un registro fue cargado en las últimas 24 horas.
+         * @param {string} fechaRegistro - El string de fecha (ej: "27/11/2025, 17:00:00").
+         * @returns {boolean} True si es nuevo, False si es antiguo.
+         */
+        function esRegistroNuevo(fechaRegistro) {
+            const ahora = new Date();
+            // 24 horas en milisegundos: 24 * 60 * 60 * 1000
+            const limiteMilisegundos = 24 * 60 * 60 * 1000; 
+            
+            // Convertir el string de fecha (ej: "27/11/2025, 17:00:00") a un objeto Date
+            const fecha = new Date(fechaRegistro); 
+
+            // Comparar la diferencia de tiempo
+            return (ahora - fecha) < limiteMilisegundos;
+        }
+
+        /**
          * Genera un botón de filtro con el manejador de clic correcto.
          */
         function generarBotonFiltro(zona, isActive, handlerFunction) {
@@ -1107,11 +1125,19 @@
                         
                         const userDisplay = capa.nombreUsuario || 'SIN REGISTRO';
                         
+                        // *** LÓGICA DE TAG 'NUEVO' PARA MUROS ***
+                        const nuevoTag = esRegistroNuevo(capa.fecha)
+                            ? `<span class="text-xs font-mono rounded bg-red-600 text-white px-2 py-0.5 ml-2 inline-block font-bold animate-pulse">NUEVO</span>`
+                            : '';
+                        
                         html += `
                             <div class="flex items-center justify-between px-4 py-3 hover:bg-mining-700/20 transition-colors">
                                 <div class="flex flex-col">
-                                    <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})</span>
-                                    
+                                    <div class="flex items-center">
+                                        <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})</span>
+                                        ${nuevoTag}
+                                    </div>
+
                                     <span class="text-xs text-slate-500 mt-1">
                                         <i class="fa-solid fa-user-gear mr-1"></i> 
                                         <span class="font-bold text-slate-400">${userDisplay}</span> | Turno: ${capa.turno}
@@ -1151,12 +1177,20 @@
                         ? 'bg-blue-900/20 text-blue-300 border-blue-800'
                         : 'bg-orange-900/20 text-orange-300 border-orange-800';
                         
-                    const userDisplay = cancha.nombreUsuario || 'SIN REGISTRO';
+                    const userDisplay = cancha.nombreUsuario || 'DESCONOCIDO';
+                    
+                    // *** LÓGICA DE TAG 'NUEVO' PARA CANCHAS ***
+                    const nuevoTag = esRegistroNuevo(cancha.fecha)
+                        ? `<span class="text-xs font-mono rounded bg-red-600 text-white px-2 py-0.5 ml-2 inline-block font-bold animate-pulse">NUEVO</span>`
+                        : '';
 
                     html += `
                         <div class="flex items-center justify-between bg-mining-900 p-3 rounded border border-mining-700 hover:bg-mining-700/20 transition-colors">
                             <div class="flex-1 min-w-0">
-                                <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}</span>
+                                <div class="flex items-center mb-1">
+                                    <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}</span>
+                                    ${nuevoTag}
+                                </div>
                                 
                                 <span class="text-xs px-2 py-0.5 rounded-full font-bold border ${materialColorClass} inline-block mt-1 mr-2">
                                     ${cancha.material}
