@@ -39,6 +39,10 @@
             stroke: #0f172a; 
             stroke-width: 1;
             transition: fill 0.3s ease-in-out; 
+            cursor: pointer;
+        }
+        .svg-capa:hover {
+            opacity: 0.8;
         }
         .color-parcial { fill: #eab308 !important; } 
         .color-completa { fill: #22c59e !important; } 
@@ -85,7 +89,7 @@
 
     <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         
-        <section id="viewLogin" class="fade-in hidden flex flex-col items-center justify-center min-h-[70vh]">
+        <section id="viewLogin" class="fade-in flex flex-col items-center justify-center min-h-[70vh]">
             <div class="max-w-sm mx-auto w-full bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-8 space-y-6">
                 <h2 class="text-3xl font-bold text-white text-center flex items-center justify-center gap-2">
                     <i class="fa-solid fa-user-lock text-mining-accent"></i> 
@@ -318,16 +322,15 @@
         // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (CLAVES INSERTADAS) ===
         // =========================================================================
         
+        // Clave insertada: https://hzmljjxtzbhfrdhtebgn.supabase.co
         const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
+        // Clave insertada: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null; 
         
-        // Variable global para el filtro de zona en la vista de reporte detallado
         let currentReportZoneFilter = 'TODOS'; 
-        
-        // **NUEVO:** Variable global para el filtro de zona en la vista de perfiles de muro
         let currentMurosZoneFilter = 'TODOS'; 
 
         const CAPA_SVG_MAP = {
@@ -336,7 +339,7 @@
         };
 
         // =========================================================================
-        // === 2. AUTENTICACIÓN Y MANEJO DE VISTAS ===
+        // === 2. AUTENTICACIÓN Y MANEJO DE VISTAS (LÓGICA DE LOGIN REFORZADA) ===
         // =========================================================================
         
         function cambiarVista(vista) {
@@ -353,17 +356,17 @@
                 v.classList.replace('flex', 'hidden');
                 v.classList.replace('block', 'hidden');
             });
-            nav.classList.add('hidden');
-
+            
             if (vista === 'login') {
                 views.login.classList.replace('hidden', 'flex');
+                nav.classList.add('hidden'); // Asegurarse que se oculte la nav al ir al login
             } else {
-                nav.classList.remove('hidden');
+                nav.classList.remove('hidden'); // Mostrar la nav solo si no es login
                 views[vista].classList.replace('hidden', 'block');
             }
             
             if (vista === 'visualizacion') {
-                renderizarDatosReporte(); // **MODIFICADO**
+                renderizarDatosReporte(); 
             } else if (vista === 'visualizacionMuros') {
                  renderizarMuros(); 
             }
@@ -372,17 +375,31 @@
         document.addEventListener('DOMContentLoaded', initializeApp);
 
         async function initializeApp() {
+            // **PASO 1: Asegurar que el contenido está oculto al inicio.**
+            document.getElementById('mainNav').classList.add('hidden');
+            document.getElementById('viewCarga').classList.add('hidden');
+            document.getElementById('viewVisualizacion').classList.add('hidden');
+            document.getElementById('viewVisualizacionMuros').classList.add('hidden');
+            
             const { data: { user } } = await supabaseClient.auth.getUser();
             currentUser = user; 
             
             if (!currentUser) {
-                cambiarVista('login'); 
-                cambiarPestana('carga'); 
+                // **Si NO hay usuario, solo mostrar el Login.**
+                document.getElementById('viewLogin').classList.replace('hidden', 'flex'); 
+                
             } else {
+                // **Si SÍ hay usuario, inicializar la sesión y mostrar el contenido.**
                 const userMetadata = currentUser.user_metadata;
                 const userName = userMetadata.nombre_completo || currentUser.email; 
 
                 document.getElementById('userInfo').innerText = `| Sesión: ${userName}`;
+                
+                // Ocultar login
+                document.getElementById('viewLogin').classList.replace('flex', 'hidden');
+                
+                // Mostrar Navegación y la vista inicial (carga)
+                document.getElementById('mainNav').classList.remove('hidden');
                 cambiarVista('carga'); 
             }
         }
@@ -451,7 +468,8 @@
             const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
             const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
             
-            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); // Ordenar para facilitar la obtención del último registro
+            // Ordenar por fecha descendente para que el primer registro sea el último estado
+            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
             const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas);
             
             if (murosError || canchasError) {
@@ -475,8 +493,6 @@
                 if (!datosDB[zona].muros) datosDB[zona].muros = {};
                 if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
 
-                // Solo agregar el registro si no existe ya (para no duplicar en el reporte, aunque si queremos el historial debe ir todo)
-                // Para simplificar, insertamos todos los registros en el reporte.
                 datosDB[zona].muros[muroId].push({
                     id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
                     nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString()
@@ -485,12 +501,12 @@
                 // B. Perfiles Muros (Lógica para determinar el último estado por capa)
                 if (!perfilesMuros[claveMuro]) {
                     perfilesMuros[claveMuro] = {
-                        zona: zona, // **NUEVO**: Añadir zona para el filtro
-                        capasEstado: {} // { 'CAPA_KEY': { estado: 'completa', fecha: Date } }
+                        zona: zona, 
+                        capasEstado: {} 
                     };
                 }
                 
-                // Como la consulta ya está ordenada por fecha descendente, el primer registro que encontramos es el más reciente.
+                // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
                 if (!perfilesMuros[claveMuro].capasEstado[capa]) {
                     perfilesMuros[claveMuro].capasEstado[capa] = {
                         estado: record.estado,
