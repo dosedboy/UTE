@@ -33,7 +33,7 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* --- NUEVOS ESTILOS SVG MUROS --- */
+        /* --- ESTILOS SVG MUROS --- */
         .svg-capa {
             fill: #334155; 
             stroke: #0f172a; 
@@ -263,6 +263,9 @@
                 <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. Se muestra el **último registro** por capa.</p>
             </header>
             
+            <div id="murosZoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+            </div>
+
             <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                 <div class="text-center py-20 text-slate-600 col-span-full">
                     <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
@@ -320,9 +323,13 @@
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         let currentUser = null; 
-        let currentZoneFilter = 'TODOS';
         
-        // **NUEVO:** Mapa para correlacionar la clave de la DB con el ID de SVG (de abajo a arriba)
+        // Variable global para el filtro de zona en la vista de reporte detallado
+        let currentReportZoneFilter = 'TODOS'; 
+        
+        // **NUEVO:** Variable global para el filtro de zona en la vista de perfiles de muro
+        let currentMurosZoneFilter = 'TODOS'; 
+
         const CAPA_SVG_MAP = {
             'BASAL': 'capa-basal', '1': 'capa-1', '2': 'capa-2', '3': 'capa-3', 
             '4': 'capa-4', '5': 'capa-5', '6': 'capa-6', 
@@ -337,7 +344,6 @@
                 login: document.getElementById('viewLogin'),
                 carga: document.getElementById('viewCarga'),
                 visualizacion: document.getElementById('viewVisualizacion'),
-                // **NUEVO:** VISTA DE MUROS
                 visualizacionMuros: document.getElementById('viewVisualizacionMuros') 
             };
             const nav = document.getElementById('mainNav');
@@ -357,9 +363,8 @@
             }
             
             if (vista === 'visualizacion') {
-                renderizarDatos(); 
+                renderizarDatosReporte(); // **MODIFICADO**
             } else if (vista === 'visualizacionMuros') {
-                 // **NUEVO:** RENDERIZAR GRÁFICO DE MUROS
                  renderizarMuros(); 
             }
         }
@@ -412,11 +417,11 @@
         }
 
         function cambiarPestana(tab) {
-            const views = ['carga', 'visualizacion', 'visualizacionMuros']; // **MODIFICADO**
+            const views = ['carga', 'visualizacion', 'visualizacionMuros']; 
             const buttons = {
                 carga: document.getElementById('btnCarga'),
                 visualizacion: document.getElementById('btnVer'),
-                visualizacionMuros: document.getElementById('btnVerMuros') // **NUEVO**
+                visualizacionMuros: document.getElementById('btnVerMuros') 
             };
             
             views.forEach(view => {
@@ -441,21 +446,21 @@
          * Devuelve: { reporteDetallado: { zona: { muros: {}, canchas: [] } }, perfilesMuros: { muro-id: { capasEstado: {} } } }
          */
         async function obtenerDatos() {
-            if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {} }; // **MODIFICADO**
+            if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {} }; 
 
             const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
             const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
             
-            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros);
+            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); // Ordenar para facilitar la obtención del último registro
             const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas);
             
             if (murosError || canchasError) {
                 console.error("Error al obtener datos de Supabase:", murosError || canchasError);
-                return { reporteDetallado: {}, perfilesMuros: {} }; // **MODIFICADO**
+                return { reporteDetallado: {}, perfilesMuros: {} }; 
             }
             
             let datosDB = {}; 
-            let perfilesMuros = {}; // **NUEVO:** Estructura para la visualización de muros
+            let perfilesMuros = {}; 
 
             // 1. Procesar Muros (Reporte Detallado y Perfiles)
             murosRaw.forEach(record => {
@@ -463,13 +468,15 @@
                 const muroId = record.muro_id.toUpperCase();
                 const capa = record.capa.toUpperCase();
                 const recordFecha = new Date(record.fecha);
-                const claveMuro = `${zona} - ${muroId}`; // Ej: MLP-2 - M2A
+                const claveMuro = `${zona} - ${muroId}`; 
                 
-                // A. Reporte Detallado (Misma lógica)
+                // A. Reporte Detallado
                 if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
                 if (!datosDB[zona].muros) datosDB[zona].muros = {};
                 if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
 
+                // Solo agregar el registro si no existe ya (para no duplicar en el reporte, aunque si queremos el historial debe ir todo)
+                // Para simplificar, insertamos todos los registros en el reporte.
                 datosDB[zona].muros[muroId].push({
                     id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
                     nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString()
@@ -478,13 +485,13 @@
                 // B. Perfiles Muros (Lógica para determinar el último estado por capa)
                 if (!perfilesMuros[claveMuro]) {
                     perfilesMuros[claveMuro] = {
-                        registros: [],
+                        zona: zona, // **NUEVO**: Añadir zona para el filtro
                         capasEstado: {} // { 'CAPA_KEY': { estado: 'completa', fecha: Date } }
                     };
                 }
                 
-                // Solo guardar el registro más reciente para cada capa
-                if (!perfilesMuros[claveMuro].capasEstado[capa] || perfilesMuros[claveMuro].capasEstado[capa].fecha < recordFecha) {
+                // Como la consulta ya está ordenada por fecha descendente, el primer registro que encontramos es el más reciente.
+                if (!perfilesMuros[claveMuro].capasEstado[capa]) {
                     perfilesMuros[claveMuro].capasEstado[capa] = {
                         estado: record.estado,
                         fecha: recordFecha
@@ -507,7 +514,7 @@
                 });
             });
             
-            return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; // **MODIFICADO**
+            return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; 
         }
 
         async function guardarDatos(e) {
@@ -594,7 +601,6 @@
             document.getElementById('cargaTitle').innerText = 'Menú de Carga';
             document.getElementById('modificationHint').classList.add('hidden');
             
-            // Re-renderizar la pestaña que esté activa (si no es Carga)
             const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
             if (activeTab && activeTab.id !== 'btnCarga') {
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
@@ -618,36 +624,15 @@
             if (shouldRerender) {
                 const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
                 const tabName = activeTab.id.replace('btn', '').toLowerCase();
-                cambiarPestana(tabName); // Re-renderizar la vista actual (Reporte o Muros)
+                cambiarPestana(tabName); 
                 mostrarToast("Registro de muro eliminado correctamente.", 'red');
             }
         }
 
-        async function eliminarRegistroCancha(zona, recordId, shouldRerender = true) {
-            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+        // --- Funciones de RENDERIZADO de Reporte Detallado ---
 
-            const { error } = await supabaseClient
-                .from('canchas_registros')
-                .delete()
-                .eq('id', recordId); 
-
-            if (error) {
-                console.error("Error al eliminar cancha:", error);
-                return showAlertModal(`Error al eliminar cancha: ${error.message}`);
-            }
-
-            if (shouldRerender) {
-                cambiarPestana('visualizacion');
-                mostrarToast("Registro de cancha eliminado correctamente.", 'red');
-            }
-        }
-        
-        // =========================================================================
-        // === 4. LÓGICA DE RENDERIZADO (VIEW VISUALIZACION) ===
-        // =========================================================================
-
-        async function renderizarDatos() {
-            const { reporteDetallado: datosDB } = await obtenerDatos(); // **MODIFICADO**
+        async function renderizarDatosReporte() {
+            const { reporteDetallado: datosDB } = await obtenerDatos(); 
             const zonas = Object.keys(datosDB).sort();
             let totalCount = 0;
 
@@ -671,21 +656,334 @@
                 return;
             }
 
-            renderizarFiltros(zonas);
+            renderizarFiltrosReporte(zonas);
             
-            if (!zonas.includes(currentZoneFilter) && currentZoneFilter !== 'TODOS') {
-                currentZoneFilter = 'TODOS'; 
+            if (!zonas.includes(currentReportZoneFilter) && currentReportZoneFilter !== 'TODOS') {
+                currentReportZoneFilter = 'TODOS'; 
             }
             
-            // Pasar los datos en caché para evitar re-lectura de Supabase
-            filtrarPorZona(currentZoneFilter, false, datosDB); 
+            filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB); 
         }
 
-        // --- Funciones de RENDERIZADO BÁSICAS (se mantienen) ---
+        function renderizarFiltrosReporte(zonas) {
+            const filterContainer = document.getElementById('zoneFilterContainer');
+            let buttonsHtml = '';
+
+            buttonsHtml += generarBotonFiltro('TODOS', currentReportZoneFilter === 'TODOS', 'filtrarPorZonaReporte');
+
+            zonas.forEach(zona => {
+                buttonsHtml += generarBotonFiltro(zona, currentReportZoneFilter === zona, 'filtrarPorZonaReporte');
+            });
+
+            filterContainer.innerHTML = buttonsHtml;
+        }
+        
+        async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
+            currentReportZoneFilter = zonaSeleccionada;
+            
+            if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
+            
+            renderizarContenidoReporte(zonaSeleccionada, datosDB);
+            
+            if (updateFilterControls) {
+                actualizarEstilosFiltro('zoneFilterContainer', zonaSeleccionada);
+            }
+        }
+        
+        function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
+            const container = document.getElementById('dashboardContainer');
+            const zonas = zonaSeleccionada === 'TODOS' 
+                ? Object.keys(datosDB).sort() 
+                : [zonaSeleccionada];
+            
+            container.innerHTML = ''; 
+
+            if (zonas.length === 0 || (zonaSeleccionada !== 'TODOS' && !datosDB[zonaSeleccionada])) {
+                container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
+                return;
+            }
+
+            zonas.forEach(zona => {
+                const dataZona = datosDB[zona];
+                if (dataZona) {
+                    const cardHtml = generarTarjetaZona(zona, dataZona);
+                    container.innerHTML += cardHtml; 
+                }
+            });
+        }
+        
+        // --- Funciones de RENDERIZADO de Muros (NUEVAS/MODIFICADAS) ---
+
+        /**
+         * Genera el SVG con la forma de tronco de pirámide invertida (muro).
+         * **MODIFICADO:** Título centrado.
+         */
+        function generarSvgMuro(claveMuro) {
+            const NUM_CAPAS = 7;
+            const width = 200;
+            const height = 240;
+            const topWidth = 50; 
+            const bottomWidth = 200; 
+            
+            const titleHeight = 25; 
+            const drawableHeight = height - titleHeight;
+            const capaHeight = drawableHeight / NUM_CAPAS;
+            
+            const capasPuntos = [];
+            
+            for (let i = 0; i < NUM_CAPAS; i++) {
+                const y_top = titleHeight + i * capaHeight;
+                const y_bottom = titleHeight + (i + 1) * capaHeight;
+                
+                const factor_top = i / NUM_CAPAS; 
+                const factor_bottom = (i + 1) / NUM_CAPAS;
+                
+                const figura_ancho_top = topWidth + (bottomWidth - topWidth) * factor_top;
+                const figura_ancho_bottom = topWidth + (bottomWidth - topWidth) * factor_bottom;
+
+                const x1_top = (width - figura_ancho_top) / 2;
+                const x2_top = x1_top + figura_ancho_top;
+                
+                const x1_bottom = (width - figura_ancho_bottom) / 2;
+                const x2_bottom = x1_bottom + figura_ancho_bottom;
+                
+                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
+            }
+
+            const NOMBRES_CAPAS_SVG = [
+                { id: 'capa-6', label: '6', dbKey: '6' },         
+                { id: 'capa-5', label: '5', dbKey: '5' },         
+                { id: 'capa-4', label: '4', dbKey: '4' },         
+                { id: 'capa-3', label: '3', dbKey: '3' },         
+                { id: 'capa-2', label: '2', dbKey: '2' },         
+                { id: 'capa-1', label: '1', dbKey: '1' },         
+                { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' },
+            ];
+
+            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+
+
+            let svgContent = `<svg viewBox="0 0 ${width} ${height}" class="w-full" style="max-width: ${width}px; margin: 0 auto; display: block;">`;
+            
+            // Título CENTRADO (x="width / 2")
+            svgContent += `
+                <text x="${width / 2}" y="15" 
+                    text-anchor="middle" 
+                    font-size="12" 
+                    font-weight="bold"
+                    fill="#e2e8f0" 
+                    class="pointer-events-none">
+                    ${claveMuro}
+                </text>
+            `;
+            
+            // Separador
+            svgContent += `<rect x="0" y="${titleHeight - 5}" width="${width}" height="1" fill="#475569"/>`;
+
+            // Renderizar las capas PATH
+            NOMBRES_CAPAS_SVG.forEach((capaInfo, i) => {
+                svgContent += `
+                    <path 
+                        id="${safeClaveMuro}-${capaInfo.id.replace(/\s/g, '_')}" 
+                        d="${capasPuntos[i]}" 
+                        class="svg-capa"
+                        data-capa-db="${capaInfo.dbKey}"
+                    />
+                `;
+            });
+            
+            // Renderizar las etiquetas de capa (Basal, 1, 2, etc.) en el centro
+            for (let i = 0; i < NUM_CAPAS; i++) {
+                const yCenter = titleHeight + (i + 0.5) * capaHeight; 
+                
+                const factor_center = (i + 0.5) / NUM_CAPAS;
+                const figura_ancho_center = topWidth + (bottomWidth - topWidth) * factor_center;
+                const xCenter = (width - figura_ancho_center) / 2 + (figura_ancho_center / 2);
+
+                let label = NOMBRES_CAPAS_SVG[i].label;
+                
+                svgContent += `
+                    <text x="${xCenter}" y="${yCenter + 3}" 
+                        text-anchor="middle" 
+                        font-size="8" 
+                        fill="#0f172a" 
+                        class="pointer-events-none font-bold opacity-70">
+                        ${label}
+                    </text>
+                `;
+            }
+
+            svgContent += `</svg>`;
+            return svgContent;
+        }
+
+        function aplicarColorMuro(claveMuro, capasEstado) {
+            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+
+            Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
+                const svgId = CAPA_SVG_MAP[dbKey];
+                
+                const elementId = `${safeClaveMuro}-${svgId}`;
+                const capaElement = document.getElementById(elementId);
+                
+                if (capaElement) {
+                    capaElement.classList.remove('color-parcial', 'color-completa');
+
+                    const estado = capasEstado[dbKey.toUpperCase()]?.estado;
+                    if (estado === 'parcial') {
+                        capaElement.classList.add('color-parcial');
+                    } else if (estado === 'completa') {
+                        capaElement.classList.add('color-completa');
+                    }
+                }
+            });
+        }
+        
+        /**
+         * Renderiza la vista de Perfil de Muros (SVG) y sus filtros.
+         */
+        async function renderizarMuros() {
+            const { perfilesMuros: muros } = await obtenerDatos(); 
+            const dashboard = document.getElementById('murosDashboard');
+            
+            // Obtener todas las zonas únicas de los muros
+            const zonasUnicas = [...new Set(Object.values(muros).map(m => m.zona))].sort();
+            
+            if (Object.keys(muros).length === 0) {
+                dashboard.innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-full">
+                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros de muros cargados aún.</p>
+                    </div>`;
+                document.getElementById('murosZoneFilterContainer').innerHTML = '';
+                return;
+            }
+            
+            // 1. Renderizar Filtros
+            renderizarFiltrosMuros(zonasUnicas);
+            
+            // 2. Aplicar Filtro
+            if (!zonasUnicas.includes(currentMurosZoneFilter) && currentMurosZoneFilter !== 'TODOS') {
+                currentMurosZoneFilter = 'TODOS'; 
+            }
+            filtrarPorZonaMuros(currentMurosZoneFilter, false, muros);
+        }
+
+        /**
+         * Renderiza los botones de filtro para la vista de Muros.
+         */
+        function renderizarFiltrosMuros(zonas) {
+            const filterContainer = document.getElementById('murosZoneFilterContainer');
+            let buttonsHtml = '';
+
+            buttonsHtml += generarBotonFiltro('TODOS', currentMurosZoneFilter === 'TODOS', 'filtrarPorZonaMuros');
+
+            zonas.forEach(zona => {
+                buttonsHtml += generarBotonFiltro(zona, currentMurosZoneFilter === zona, 'filtrarPorZonaMuros');
+            });
+
+            filterContainer.innerHTML = buttonsHtml;
+        }
+
+        /**
+         * Filtra y renderiza los muros según la zona seleccionada.
+         */
+        async function filtrarPorZonaMuros(zonaSeleccionada, updateFilterControls = true, muros = null) {
+            currentMurosZoneFilter = zonaSeleccionada;
+            
+            if (!muros) muros = (await obtenerDatos()).perfilesMuros; 
+            const dashboard = document.getElementById('murosDashboard');
+            dashboard.innerHTML = '';
+            
+            const murosFiltrados = Object.entries(muros)
+                .filter(([clave, data]) => zonaSeleccionada === 'TODOS' || data.zona === zonaSeleccionada)
+                .sort(([claveA], [claveB]) => compareAlphanumeric({ capa: claveA }, { capa: claveB }));
+            
+            if (murosFiltrados.length === 0) {
+                 dashboard.innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-full">
+                        <i class="fa-solid fa-mountain-sun text-6xl mb-4 opacity-20"></i>
+                        <p>No hay muros en la zona seleccionada (${zonaSeleccionada}).</p>
+                    </div>`;
+            } else {
+                murosFiltrados.forEach(([claveMuro, dataMuro]) => {
+                    let html = `
+                        <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
+                            <div class="svg-container relative">
+                                ${generarSvgMuro(claveMuro)}
+                            </div>
+                            
+                            <div class="mt-4 border-t border-mining-700 pt-3">
+                                <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros (por Capa):</p>
+                                ${Object.keys(dataMuro.capasEstado).sort(compareAlphanumeric).map(capa => {
+                                    const r = dataMuro.capasEstado[capa];
+                                    return `
+                                        <div class="flex justify-between text-xs text-slate-300">
+                                            <span>Capa ${capa}:</span>
+                                            <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                    dashboard.innerHTML += html;
+                    
+                    // Asegurar que el SVG se coloree después de estar en el DOM
+                    setTimeout(() => aplicarColorMuro(claveMuro, dataMuro.capasEstado), 0);
+                });
+            }
+
+            if (updateFilterControls) {
+                actualizarEstilosFiltro('murosZoneFilterContainer', zonaSeleccionada);
+            }
+        }
+        
+        // --- Funciones de RENDERIZADO COMUNES (MODIFICADAS) ---
+
+        /**
+         * Genera un botón de filtro con el manejador de clic correcto.
+         */
+        function generarBotonFiltro(zona, isActive, handlerFunction) {
+            const activeClass = 'bg-mining-accent text-white shadow-md';
+            const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+
+            return `
+                <button onclick="${handlerFunction}('${zona}')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClass : inactiveClass}">
+                    ${zona}
+                </button>
+            `;
+        }
+
+        /**
+         * Actualiza los estilos de los botones de filtro.
+         */
+        function actualizarEstilosFiltro(containerId, zonaSeleccionada) {
+             const filterContainer = document.getElementById(containerId);
+             const activeClass = 'bg-mining-accent text-white shadow-md';
+             const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+
+             filterContainer.querySelectorAll('button').forEach(btn => {
+                const zonaBtn = btn.innerText.trim();
+                
+                if (zonaBtn === zonaSeleccionada) {
+                    btn.classList.remove(...inactiveClass.split(' '));
+                    btn.classList.add(...activeClass.split(' '));
+                } else {
+                    btn.classList.remove(...activeClass.split(' '));
+                    btn.classList.add(...inactiveClass.split(' '));
+                }
+            });
+        }
+        
         function compareAlphanumeric(a, b) {
+            // Usa el campo 'capa' para comparar (que contiene la clave del muro en las funciones de filtro de muros)
+            const aStr = a.capa || a; 
+            const bStr = b.capa || b; 
+            
             const regex = /(\d+)|(\D+)/g;
-            const partsA = a.capa.match(regex) || [];
-            const partsB = b.capa.match(regex) || [];
+            const partsA = aStr.match(regex) || [];
+            const partsB = bStr.match(regex) || [];
 
             for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
                 const partA = partsA[i] || '';
@@ -733,6 +1031,7 @@
                             <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
                             <div class="divide-y divide-mining-700">`;
                     
+                    // Ordenar por capa usando compareAlphanumeric
                     dataZona.muros[muroNombre].sort(compareAlphanumeric).forEach(capa => {
                         const colorClass = capa.estado === 'completa' 
                             ? 'text-mining-success bg-green-900/10 border-green-800' 
@@ -768,7 +1067,7 @@
             } else {
                 html += `<p class="text-sm text-slate-600 italic">Sin registros de muros.</p>`;
             }
-            html += `</div>`; 
+            html += `</div>`; // Fin columna muros
 
             // --- COLUMNA CANCHAS ---
             html += `<div class="space-y-4">
@@ -823,268 +1122,8 @@
             return html;
         }
 
-        // --- Funciones de RENDERIZADO de Muros (NUEVAS) ---
-        
-        /**
-         * Genera el SVG con la forma de tronco de pirámide invertida (muro).
-         * @param {string} claveMuro - Ej: "MLP-2 - M2A"
-         */
-        function generarSvgMuro(claveMuro) {
-            const NUM_CAPAS = 7;
-            const width = 200;
-            const height = 240;
-            const topWidth = 50; 
-            const bottomWidth = 200; 
-            
-            const titleHeight = 25; 
-            const drawableHeight = height - titleHeight;
-            const capaHeight = drawableHeight / NUM_CAPAS;
-            
-            const capasPuntos = [];
-            
-            // Calcula los puntos para cada capa (de arriba hacia abajo)
-            for (let i = 0; i < NUM_CAPAS; i++) {
-                const y_top = titleHeight + i * capaHeight;
-                const y_bottom = titleHeight + (i + 1) * capaHeight;
-                
-                const factor_top = i / NUM_CAPAS; 
-                const factor_bottom = (i + 1) / NUM_CAPAS;
-                
-                // Muro se ensancha hacia abajo (pirámide invertida)
-                const figura_ancho_top = topWidth + (bottomWidth - topWidth) * factor_top;
-                const figura_ancho_bottom = topWidth + (bottomWidth - topWidth) * factor_bottom;
+        // --- Funciones auxiliares (se mantienen) ---
 
-                const x1_top = (width - figura_ancho_top) / 2;
-                const x2_top = x1_top + figura_ancho_top;
-                
-                const x1_bottom = (width - figura_ancho_bottom) / 2;
-                const x2_bottom = x1_bottom + figura_ancho_bottom;
-                
-                // Puntos de la capa: Esquina inferior-izquierda, inferior-derecha, superior-derecha, superior-izquierda
-                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
-            }
-
-            // Mapeo de nombres de capas para renderizado (ordenados de arriba a abajo)
-            const NOMBRES_CAPAS_SVG = [
-                { id: 'capa-6', label: '6', dbKey: '6' },         
-                { id: 'capa-5', label: '5', dbKey: '5' },         
-                { id: 'capa-4', label: '4', dbKey: '4' },         
-                { id: 'capa-3', label: '3', dbKey: '3' },         
-                { id: 'capa-2', label: '2', dbKey: '2' },         
-                { id: 'capa-1', label: '1', dbKey: '1' },         
-                { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' }, // Última capa (más baja)
-            ];
-
-            // Crear un ID seguro para la manipulación DOM
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
-
-
-            let svgContent = `<svg viewBox="0 0 ${width} ${height}" class="w-full" style="max-width: ${width}px; margin: 0 auto; display: block;">`;
-            
-            // Título
-            svgContent += `
-                <text x="5" y="15" 
-                    text-anchor="start" 
-                    font-size="12" 
-                    font-weight="bold"
-                    fill="#e2e8f0" 
-                    class="pointer-events-none">
-                    ${claveMuro}
-                </text>
-            `;
-            
-            // Separador
-            svgContent += `<rect x="0" y="${titleHeight - 5}" width="${width}" height="1" fill="#475569"/>`;
-
-            // Renderizar las capas PATH
-            NOMBRES_CAPAS_SVG.forEach((capaInfo, i) => {
-                svgContent += `
-                    <path 
-                        id="${safeClaveMuro}-${capaInfo.id.replace(/\s/g, '_')}" 
-                        d="${capasPuntos[i]}" 
-                        class="svg-capa"
-                        data-capa-db="${capaInfo.dbKey}"
-                    />
-                `;
-            });
-            
-            // Renderizar las etiquetas de capa (Basal, 1, 2, etc.) en el centro
-            for (let i = 0; i < NUM_CAPAS; i++) {
-                const yCenter = titleHeight + (i + 0.5) * capaHeight; 
-                
-                const factor_center = (i + 0.5) / NUM_CAPAS;
-                const figura_ancho_center = topWidth + (bottomWidth - topWidth) * factor_center;
-                const xCenter = (width - figura_ancho_center) / 2 + (figura_ancho_center / 2);
-
-                let label = NOMBRES_CAPAS_SVG[i].label;
-                
-                svgContent += `
-                    <text x="${xCenter}" y="${yCenter + 3}" 
-                        text-anchor="middle" 
-                        font-size="8" 
-                        fill="#0f172a" 
-                        class="pointer-events-none font-bold opacity-70">
-                        ${label}
-                    </text>
-                `;
-            }
-
-            svgContent += `</svg>`;
-            return svgContent;
-        }
-
-        /**
-         * Aplica el color a las capas del SVG según su estado.
-         */
-        function aplicarColorMuro(claveMuro, capasEstado) {
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
-
-            // Itera sobre el mapa de claves DB a IDs de SVG
-            Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
-                const svgId = CAPA_SVG_MAP[dbKey];
-                
-                const elementId = `${safeClaveMuro}-${svgId}`;
-                const capaElement = document.getElementById(elementId);
-                
-                if (capaElement) {
-                    // Limpiar clases de color
-                    capaElement.classList.remove('color-parcial', 'color-completa');
-
-                    // Aplicar el estado más reciente
-                    const estado = capasEstado[dbKey.toUpperCase()]?.estado;
-                    if (estado === 'parcial') {
-                        capaElement.classList.add('color-parcial');
-                    } else if (estado === 'completa') {
-                        capaElement.classList.add('color-completa');
-                    }
-                }
-            });
-        }
-        
-        /**
-         * Renderiza la vista de Perfil de Muros (SVG).
-         */
-        async function renderizarMuros() {
-            const { perfilesMuros: muros } = await obtenerDatos(); // **MODIFICADO**
-            const dashboard = document.getElementById('murosDashboard');
-            
-            dashboard.innerHTML = '';
-            const clavesMuros = Object.keys(muros).sort(compareAlphanumeric); // Ordenar por nombre alfanumérico
-            
-            if (clavesMuros.length === 0) {
-                dashboard.innerHTML = `
-                    <div class="text-center py-20 text-slate-600 col-span-full">
-                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                        <p>No hay registros de muros cargados aún.</p>
-                    </div>`;
-                return;
-            }
-
-            clavesMuros.forEach(claveMuro => {
-                const dataMuro = muros[claveMuro];
-                
-                let html = `
-                    <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
-                        <div class="svg-container relative">
-                            ${generarSvgMuro(claveMuro)}
-                        </div>
-                        
-                        <div class="mt-4 border-t border-mining-700 pt-3">
-                            <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros (por Capa):</p>
-                            ${Object.keys(dataMuro.capasEstado).sort(compareAlphanumeric).map(capa => {
-                                const r = dataMuro.capasEstado[capa];
-                                return `
-                                    <div class="flex justify-between text-xs text-slate-300">
-                                        <span>Capa ${capa}:</span>
-                                        <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado}</span>
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-                dashboard.innerHTML += html;
-                
-                // Llamar a la función que colorea el SVG después de que se haya insertado en el DOM
-                aplicarColorMuro(claveMuro, dataMuro.capasEstado);
-            });
-        }
-        
-        // --- Otras funciones auxiliares (se mantienen) ---
-
-        function renderizarFiltros(zonas) {
-            const filterContainer = document.getElementById('zoneFilterContainer');
-            let buttonsHtml = '';
-
-            buttonsHtml += generarBotonFiltro('TODOS', currentZoneFilter === 'TODOS');
-
-            zonas.forEach(zona => {
-                buttonsHtml += generarBotonFiltro(zona, currentZoneFilter === zona);
-            });
-
-            filterContainer.innerHTML = buttonsHtml;
-        }
-
-        function generarBotonFiltro(zona, isActive) {
-            const activeClass = 'bg-mining-accent text-white shadow-md';
-            const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
-
-            return `
-                <button onclick="filtrarPorZona('${zona}')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClass : inactiveClass}">
-                    ${zona}
-                </button>
-            `;
-        }
-
-        async function filtrarPorZona(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
-            currentZoneFilter = zonaSeleccionada;
-            
-            if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
-            
-            renderizarContenido(zonaSeleccionada, datosDB);
-            
-            if (updateFilterControls) {
-                const filterContainer = document.getElementById('zoneFilterContainer');
-                filterContainer.querySelectorAll('button').forEach(btn => {
-                    const zonaBtn = btn.innerText.trim();
-                    const activeClass = 'bg-mining-accent text-white shadow-md';
-                    const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
-                    
-                    if (zonaBtn === zonaSeleccionada) {
-                        btn.classList.replace(inactiveClass, activeClass);
-                        btn.classList.remove(...inactiveClass.split(' '));
-                        btn.classList.add(...activeClass.split(' '));
-                    } else {
-                        btn.classList.replace(activeClass, inactiveClass);
-                        btn.classList.remove(...activeClass.split(' '));
-                        btn.classList.add(...inactiveClass.split(' '));
-                    }
-                });
-            }
-        }
-
-        function renderizarContenido(zonaSeleccionada, datosDB) {
-            const container = document.getElementById('dashboardContainer');
-            const zonas = zonaSeleccionada === 'TODOS' 
-                ? Object.keys(datosDB).sort() 
-                : [zonaSeleccionada];
-            
-            container.innerHTML = ''; 
-
-            if (zonas.length === 0 || (zonaSeleccionada !== 'TODOS' && !datosDB[zonaSeleccionada])) {
-                container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
-                return;
-            }
-
-            zonas.forEach(zona => {
-                const dataZona = datosDB[zona];
-                if (dataZona) {
-                    const cardHtml = generarTarjetaZona(zona, dataZona);
-                    container.innerHTML += cardHtml; 
-                }
-            });
-        }
-        
         function showAlertModal(message) {
             document.getElementById('alertMessage').innerText = message;
             document.getElementById('alertModal').classList.replace('hidden', 'flex');
@@ -1117,7 +1156,7 @@
                 limpiarDB
             );
         }
-        
+
         function mostrarModalEliminarMuro(zona, muroId, recordId) {
             mostrarActionModal(
                 'Eliminar Registro',
