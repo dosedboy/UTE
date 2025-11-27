@@ -322,9 +322,7 @@
         // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (CLAVES INSERTADAS) ===
         // =========================================================================
         
-        // Clave insertada: https://hzmljjxtzbhfrdhtebgn.supabase.co
         const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
-        // Clave insertada: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
 
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -337,9 +335,26 @@
             'BASAL': 'capa-basal', '1': 'capa-1', '2': 'capa-2', '3': 'capa-3', 
             '4': 'capa-4', '5': 'capa-5', '6': 'capa-6', 
         };
+        
+        // =========================================================================
+        // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA (PARA INDISTINGUIR GUIONES) ===
+        // =========================================================================
+
+        /**
+         * Normaliza el nombre de la zona eliminando guiones, espacios y otros 
+         * caracteres no alfanuméricos, y usando mayúsculas.
+         * Ej: 'Mlp-2' -> 'MLP2'
+         */
+        function normalizarZona(zona) {
+            if (typeof zona !== 'string') return '';
+            // 1. Convertir a mayúsculas
+            let texto = zona.toUpperCase();
+            // 2. Eliminar todo lo que no sea una letra (A-Z) o un número (0-9)
+            return texto.replace(/[^A-Z0-9]/g, ''); 
+        }
 
         // =========================================================================
-        // === 2. AUTENTICACIÓN Y MANEJO DE VISTAS (LÓGICA DE LOGIN REFORZADA) ===
+        // === 3. AUTENTICACIÓN Y MANEJO DE VISTAS (LÓGICA DE LOGIN REFORZADA) ===
         // =========================================================================
         
         function cambiarVista(vista) {
@@ -385,11 +400,11 @@
             currentUser = user; 
             
             if (!currentUser) {
-                // **Si NO hay usuario, solo mostrar el Login.**
+                // Si NO hay usuario, solo mostrar el Login.
                 document.getElementById('viewLogin').classList.replace('hidden', 'flex'); 
                 
             } else {
-                // **Si SÍ hay usuario, inicializar la sesión y mostrar el contenido.**
+                // Si SÍ hay usuario, inicializar la sesión y mostrar el contenido.
                 const userMetadata = currentUser.user_metadata;
                 const userName = userMetadata.nombre_completo || currentUser.email; 
 
@@ -455,7 +470,7 @@
         }
         
         // =========================================================================
-        // === 3. LÓGICA DE DATOS (SUPABASE CRUD) ===
+        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - Modificada la Zona en Guardar ===
         // =========================================================================
 
         /**
@@ -482,7 +497,8 @@
 
             // 1. Procesar Muros (Reporte Detallado y Perfiles)
             murosRaw.forEach(record => {
-                const zona = record.zona.toUpperCase();
+                // La zona ya está normalizada en la DB (ej: 'MLP2')
+                const zona = record.zona; 
                 const muroId = record.muro_id.toUpperCase();
                 const capa = record.capa.toUpperCase();
                 const recordFecha = new Date(record.fecha);
@@ -517,7 +533,8 @@
 
             // 2. Procesar Canchas (Reporte Detallado)
             canchasRaw.forEach(record => {
-                const zona = record.zona.toUpperCase();
+                // La zona ya está normalizada en la DB (ej: 'PC3')
+                const zona = record.zona; 
 
                 if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [] };
                 if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
@@ -550,7 +567,11 @@
             
             if (tipo === 'muro') {
                 tabla = 'muros_registros';
-                const zona = document.getElementById('muroZona').value.trim().toUpperCase();
+                
+                // *** APLICACIÓN DE NORMALIZACIÓN DE ZONA ***
+                const zonaRaw = document.getElementById('muroZona').value.trim();
+                const zona = normalizarZona(zonaRaw); // Normaliza: MLP-2 -> MLP2
+
                 const muroId = document.getElementById('muroId').value.trim().toUpperCase();
                 const capa = document.getElementById('muroCapa').value.trim().toUpperCase(); 
                 const esParcial = document.getElementById('checkParcial').checked;
@@ -561,7 +582,7 @@
                 }
 
                 objetoRegistro = {
-                    zona: zona,
+                    zona: zona, // Guarda la zona normalizada
                     muro_id: muroId,
                     capa: capa,
                     estado: esParcial ? 'parcial' : 'completa',
@@ -572,13 +593,17 @@
 
             } else { // tipo === 'cancha'
                 tabla = 'canchas_registros';
-                const zona = document.getElementById('canchaZona').value.trim().toUpperCase();
+                
+                // *** APLICACIÓN DE NORMALIZACIÓN DE ZONA ***
+                const zonaRaw = document.getElementById('canchaZona').value.trim();
+                const zona = normalizarZona(zonaRaw); // Normaliza: PC-3 -> PC3
+
                 const pileta = document.getElementById('canchaPileta').value.trim().toUpperCase();
                 const cancha = document.getElementById('canchaNumero').value.trim().toUpperCase();
                 const material = document.getElementById('canchaMaterial').value;
                 
                 objetoRegistro = {
-                    zona: zona,
+                    zona: zona, // Guarda la zona normalizada
                     pileta: pileta,
                     numero: cancha,
                     material: material,
@@ -862,7 +887,7 @@
             const { perfilesMuros: muros } = await obtenerDatos(); 
             const dashboard = document.getElementById('murosDashboard');
             
-            // Obtener todas las zonas únicas de los muros
+            // Obtener todas las zonas únicas de los muros (ya están normalizadas)
             const zonasUnicas = [...new Set(Object.values(muros).map(m => m.zona))].sort();
             
             if (Object.keys(muros).length === 0) {
