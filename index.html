@@ -75,7 +75,7 @@
                         <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
                     </button>
                     <button onclick="cambiarPestana('visualizacionMuros')" id="btnVerMuros" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-area mr-2"></i> Gráfico Capas
+                        <i class="fa-solid fa-chart-area mr-2"></i> Gráficos de capas
                     </button>
                 </div>
                 
@@ -218,14 +218,15 @@
                                 </select>
                                 <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                                     <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div>
-                            </div>
+                                </div
+                            ></div>
                         </div>
                     </div>
 
                     <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2">
                         <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
                     </button>
+                    
                     <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
                         Borrar todos los datos (Admin)
                     </button>
@@ -269,14 +270,7 @@
             <div id="murosZoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
             </div>
 
-            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                <div class="text-center py-20 text-slate-600 col-span-full">
-                    <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros de muros cargados aún.</p>
-                </div>
-            </div>
-            
-            <div class="mt-8 p-4 bg-mining-800 rounded-lg border border-mining-700">
+            <div class="mb-6 p-4 bg-mining-800 rounded-lg border border-mining-700">
                 <h3 class="text-lg font-semibold text-white mb-2">Leyenda</h3>
                 <div class="flex flex-wrap gap-4 text-sm">
                     <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-success rounded-full"></span> Completa</span>
@@ -284,6 +278,14 @@
                     <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-700 rounded-full"></span> Sin Datos</span>
                 </div>
             </div>
+
+            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                <div class="text-center py-20 text-slate-600 col-span-full">
+                    <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
+                    <p>No hay registros de muros cargados aún.</p>
+                </div>
+            </div>
+            
         </section>
 
 
