@@ -259,6 +259,58 @@ async function obtenerDatos() {
     return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; 
 }
 
+/**
+ * Obtiene y consolida las 10 entradas más recientes de muros y canchas
+ * para generar un log de actividad global.
+ */
+async function obtenerLogActividadGlobal() {
+    if (!currentUser) return [];
+
+    const selectQueryMuros = 'fecha, zona, muro_id, capa, estado, nombre_usuario';
+    const selectQueryCanchas = 'fecha, zona, pileta, numero, material, nombre_usuario';
+
+    // Obtener los 10 registros de muros más recientes
+    const { data: murosRaw, error: murosError } = await supabaseClient
+        .from('muros_registros')
+        .select(selectQueryMuros)
+        .order('fecha', { ascending: false })
+        .limit(10); 
+
+    // Obtener los 10 registros de canchas más recientes
+    const { data: canchasRaw, error: canchasError } = await supabaseClient
+        .from('canchas_registros')
+        .select(selectQueryCanchas)
+        .order('fecha', { ascending: false })
+        .limit(10); 
+
+    if (murosError || canchasError) {
+        console.error("Error al obtener log de actividad:", murosError || canchasError);
+        return [];
+    }
+    
+    // Mapear y normalizar los registros
+    const logMuros = murosRaw.map(r => ({
+        fecha: new Date(r.fecha),
+        tipo: 'Muro',
+        usuario: r.nombre_usuario || 'Desconocido',
+        detalle: `Zona ${r.zona} / Muro ${r.muro_id} / Capa ${r.capa} (${r.estado.toUpperCase()})`
+    }));
+
+    const logCanchas = canchasRaw.map(r => ({
+        fecha: new Date(r.fecha),
+        tipo: 'Cancha',
+        usuario: r.nombre_usuario || 'Desconocido',
+        detalle: `Zona ${r.zona} / Pileta ${r.pileta} / Cancha ${r.numero} (${r.material})`
+    }));
+    
+    // Consolidar, ordenar y limitar a los 10 más recientes
+    const logConsolidado = [...logMuros, ...logCanchas]
+        .sort((a, b) => b.fecha.getTime() - a.fecha.getTime()) // Ordenar Descendente
+        .slice(0, 10); // Limitar a los 10 más recientes
+
+    return logConsolidado;
+}
+
 async function guardarDatos(e) {
     e.preventDefault();
     if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
@@ -410,6 +462,7 @@ async function eliminarRegistroCancha(zona, recordId) {
 
 async function renderizarDatosReporte() {
     const { reporteDetallado: datosDB } = await obtenerDatos(); 
+    const logActividad = await obtenerLogActividadGlobal(); 
     const zonas = Object.keys(datosDB).sort(); // Ordenar alfabéticamente para filtros
 
     let totalCount = 0;
@@ -423,6 +476,14 @@ async function renderizarDatosReporte() {
     document.getElementById('totalRegistros').innerText = totalCount;
 
     if (zonas.length === 0) {
+        // Si no hay zonas, aún queremos mostrar el log si tiene datos
+        if (logActividad.length > 0) {
+            document.getElementById('zoneFilterContainer').innerHTML = ''; 
+            document.getElementById('dashboardContainer').innerHTML = generarTarjetaLog(logActividad); 
+            return;
+        }
+
+        // Si no hay nada, mostrar mensaje de vacío
         document.getElementById('zoneFilterContainer').innerHTML = ''; 
         document.getElementById('dashboardContainer').innerHTML = `
             <div class="text-center py-20 text-slate-600 col-span-1">
@@ -439,7 +500,7 @@ async function renderizarDatosReporte() {
         currentReportZoneFilter = 'TODOS'; 
     }
     
-    filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB); 
+    filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB, logActividad); 
 }
 
 function renderizarFiltrosReporte(zonas) {
@@ -455,12 +516,13 @@ function renderizarFiltrosReporte(zonas) {
     filterContainer.innerHTML = buttonsHtml;
 }
 
-async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
+async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null, logActividad = null) {
     currentReportZoneFilter = zonaSeleccionada;
     
     if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
+    if (!logActividad) logActividad = await obtenerLogActividadGlobal(); 
     
-    renderizarContenidoReporte(zonaSeleccionada, datosDB);
+    renderizarContenidoReporte(zonaSeleccionada, datosDB, logActividad); 
     
     if (updateFilterControls) {
         actualizarEstilosFiltro('zoneFilterContainer', zonaSeleccionada);
@@ -470,28 +532,34 @@ async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = tr
 /**
  * Renderiza el contenido del dashboard, con ordenamiento por fecha de última carga.
  */
-function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
+function renderizarContenidoReporte(zonaSeleccionada, datosDB, logActividad) { 
     const container = document.getElementById('dashboardContainer');
     
     let zonas = Object.keys(datosDB);
 
-    if (zonas.length === 0) {
+    if (zonas.length === 0 && logActividad.length === 0) {
         container.innerHTML = `<div class="text-center py-10 text-slate-500 italic">No hay registros cargados aún.</div>`;
         return;
     }
     
-    // 1. FILTRADO (si no es 'TODOS')
+    // 1. GENERAR EL LOG DE ACTIVIDAD (Siempre visible en 'TODOS')
+    let logHtml = '';
+    if (zonaSeleccionada === 'TODOS' && logActividad.length > 0) {
+        logHtml = generarTarjetaLog(logActividad);
+    }
+
+    // 2. FILTRADO (si no es 'TODOS')
     let zonasAProcesar = zonas;
     if (zonaSeleccionada !== 'TODOS') {
         zonasAProcesar = zonas.filter(zona => zona === zonaSeleccionada);
     }
     
-    if (zonasAProcesar.length === 0) {
+    if (zonasAProcesar.length === 0 && zonaSeleccionada !== 'TODOS') {
         container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
         return;
     }
 
-    // 2. ORDENAMIENTO DE LAS TARJETAS (solo si el filtro es 'TODOS')
+    // 3. ORDENAMIENTO DE LAS TARJETAS (solo si el filtro es 'TODOS')
     if (zonaSeleccionada === 'TODOS') {
         zonasAProcesar.sort((zonaA, zonaB) => {
             const fechaA = datosDB[zonaA].ultimaFecha || new Date(0);
@@ -500,12 +568,10 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
             // Orden descendente (fecha más nueva primero)
             return fechaB - fechaA; 
         });
-    } else {
-         // Si se selecciona una zona específica, la ordenación no importa, solo se muestra esa.
     }
 
-    // 3. RENDERIZADO
-    container.innerHTML = ''; 
+    // 4. RENDERIZADO
+    container.innerHTML = logHtml; // <-- Colocar el Log primero
     zonasAProcesar.forEach(zona => {
         const dataZona = datosDB[zona];
         if (dataZona) {
@@ -1060,6 +1126,48 @@ function generarTarjetaZona(zona, dataZona) {
     html += `</div></div>`; 
     return html;
 }
+
+/**
+ * Genera la tarjeta de log de actividad con las últimas 10 entradas.
+ */
+function generarTarjetaLog(logActividad) {
+    if (logActividad.length === 0) return '';
+
+    let itemsHtml = logActividad.map(log => {
+        const iconClass = log.tipo === 'Muro' ? 'fa-solid fa-block-brick' : 'fa-solid fa-mountain-sun';
+        const colorClass = log.tipo === 'Muro' ? 'text-blue-400' : 'text-orange-400';
+        
+        // Formato de hora: 10:30:15 PM
+        const timeStr = log.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        
+        return `
+            <div class="flex items-start p-3 bg-mining-900/50 rounded-lg border border-mining-700 hover:bg-mining-700/50 transition-colors">
+                <i class="${iconClass} ${colorClass} text-xl mr-3 mt-1 flex-shrink-0"></i>
+                <div class="flex-grow min-w-0">
+                    <p class="text-sm font-bold text-white truncate">${log.detalle}</p>
+                    <div class="text-xs text-slate-400 mt-1 flex justify-between items-center">
+                        <span class="font-semibold text-slate-300"><i class="fa-solid fa-user mr-1"></i> ${log.usuario}</span>
+                        <span><i class="fa-regular fa-clock mr-1"></i> ${timeStr}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // **IMPORTANTE**: La clase "col-span-1 lg:col-span-2" hace que ocupe todo el ancho.
+    return `
+        <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in col-span-1 lg:col-span-2"> 
+            <div class="bg-gradient-to-r from-slate-700 to-mining-800 p-4 border-b border-mining-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-list-check mr-2 text-slate-400"></i> Últimas 10 Actividades Globales</h3>
+                <span class="text-xs text-slate-400 italic">Más reciente primero</span>
+            </div>
+            <div class="p-4 space-y-3">
+                ${itemsHtml}
+            </div>
+        </div>
+    `;
+}
+
 
 // --- Funciones auxiliares (Modales y Formulario) ---
 
