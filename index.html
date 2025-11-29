@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Civil Minero</title>
+    <title>Control Civil Minero (Modo Local)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -13,12 +13,12 @@
                 extend: {
                     colors: {
                         mining: {
-                            900: '#0f172a', 
-                            800: '#1e293b', 
-                            700: '#334155', 
-                            accent: '#3b82f6', 
-                            warning: '#eab308', 
-                            success: '#22c59e'  
+                            900: '#0f172a', // Fondo muy oscuro
+                            800: '#1e293b', // Paneles
+                            700: '#334155', // Bordes
+                            accent: '#3b82f6', // Azul primario
+                            warning: '#eab308', // Amarillo
+                            success: '#22c59e'  // Verde
                         }
                     }
                 }
@@ -33,50 +33,34 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* --- ESTILOS SVG MUROS --- */
+        /* Estilo base de las capas (gris/sin datos) */
         .svg-capa {
-            fill: #334155; 
-            stroke: #0f172a; 
+            fill: #334155; /* slate-700 para sin datos */
+            stroke: #0f172a; /* Borde oscuro para separación */
             stroke-width: 1;
-            transition: fill 0.3s ease-in-out; 
-            cursor: pointer;
+            transition: fill 0.3s ease-in-out; /* Transición para el pintado */
         }
-        .svg-capa:hover {
-            opacity: 0.8;
-        }
-        .color-parcial { fill: #eab308 !important; } 
-        .color-completa { fill: #22c59e !important; } 
+
+        /* Colores de estado (controlados por JS) */
+        .color-parcial { fill: #eab308 !important; } /* Amarillo */
+        .color-completa { fill: #22c59e !important; } /* Verde */
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        
-        /* 🔥 ESTILO: Etiqueta "NUEVO" */
-        .tag-nuevo {
-            background-color: #ef4444; /* Rojo 500 */
-            color: white;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 0.65rem; 
-            font-weight: bold;
-            line-height: 1;
-            margin-left: 8px;
-            white-space: nowrap;
-            letter-spacing: 0.05em;
-        }
     </style>
 </head>
 <body class="bg-mining-900 text-slate-200 min-h-screen flex flex-col">
 
-    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0 hidden">
+    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             
             <div class="flex items-center gap-4">
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-helmet-safety text-mining-accent"></i> 
-                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| Gestión de Obra</span>
+                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| GESTIÓN DE OBRA (MODO LOCAL)</span>
                 </h1>
             </div>
             
@@ -86,13 +70,10 @@
                         <i class="fa-regular fa-floppy-disk mr-2"></i> Cargar Datos
                     </button>
                     <button onclick="cambiarPestana('visualizacion')" id="btnVer" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-line mr-2"></i> Reporte Muros/Canchas
+                        <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
                     </button>
                     <button onclick="cambiarPestana('visualizacionMuros')" id="btnVerMuros" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
                         <i class="fa-solid fa-chart-area mr-2"></i> Muros (Perfil)
-                    </button>
-                    <button onclick="cambiarPestana('visualizacionLiberaciones')" id="btnVerLiberaciones" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-check-double mr-2"></i> Liberaciones
                     </button>
                 </div>
                 
@@ -106,38 +87,16 @@
 
     <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         
-        <section id="viewLogin" class="fade-in flex flex-col items-center justify-center min-h-[70vh]">
-            <div class="max-w-sm mx-auto w-full bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-8 space-y-6">
-                <h2 class="text-3xl font-bold text-white text-center flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-lock text-mining-accent"></i> 
-                    Acceso al Sistema
-                </h2>
-                <p class="text-sm text-slate-400 text-center">Ingrese sus credenciales para acceder a la gestión de obra.</p>
-
-                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-                    
-                    <div class="space-y-1">
-                        <label for="loginEmail" class="text-xs text-slate-400 font-bold uppercase">Correo Electrónico</label>
-                        <input type="email" id="loginEmail" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="su.correo@empresa.com">
-                    </div>
-
-                    <div class="space-y-1">
-                        <label for="loginPassword" class="text-xs text-slate-400 font-bold uppercase">Contraseña</label>
-                        <input type="password" id="loginPassword" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="******">
-                    </div>
-
-                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2 mt-6">
-                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
-                    </button>
-                </form>
-            </div>
+        <section id="viewLogin" class="hidden flex flex-col items-center justify-center min-h-[70vh]">
+            <h2 class="text-3xl font-bold text-red-500 text-center">MODO LOCAL ACTIVO</h2>
+            <p class="text-lg text-slate-400 mt-2">No se requiere inicio de sesión. Acceso directo a Carga.</p>
         </section>
 
         <section id="viewCarga" class="fade-in hidden">
             <div class="max-w-xl mx-auto bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-6 space-y-6">
                 
                 <h2 class="text-2xl font-bold text-white border-b border-mining-700 pb-3" id="cargaTitle">Menú de Carga</h2>
-                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos.</p>
+                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos. El registro anterior se eliminará de su posición original.</p>
                 
                 <div class="space-y-2">
                     <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Registro</label>
@@ -146,7 +105,6 @@
                             <option value="" disabled selected>Seleccione una opción...</option>
                             <option value="muro">MURO</option>
                             <option value="cancha">CANCHA</option>
-                            <option value="liberacion">LIBERACIÓN</option> 
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
                             <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -169,24 +127,23 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" id="recordIdToModify" value="">
-                    <input type="hidden" id="originalZona" value="">
-                    <input type="hidden" id="originalKey" value="">
+                    <input type="hidden" id="recordIdToModify" value=""> 
 
                     <div id="fieldsMuro" class="hidden space-y-5">
                         <div class="space-y-1">
                             <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2 / PC-3 / PL-5" required>
+                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2">
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-xs text-slate-400 font-bold uppercase">Muro</label>
-                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A / M3AB / M45B" required>
+                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A OESTE">
                         </div>
 
                         <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Capa</label>
-                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: BASAL / 1 / 2 / 6" required>
+                            <label class="text-xs text-slate-400 font-bold uppercase">Capa # (Basal, 1 a 6)</label>
+                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: 1, 3, BASAL, 6">
+                            <p class="text-xs text-slate-500 mt-1">**Nota:** La Capa 6 es el Coronamiento.</p>
                         </div>
 
                         <div class="bg-mining-900 p-4 rounded border border-mining-700">
@@ -212,106 +169,19 @@
                     </div>
 
                     <div id="fieldsCancha" class="hidden space-y-5">
+                        <p class="text-sm text-slate-500">Los campos de Cancha se ignorarán en modo de prueba local.</p>
                         <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC-3 / MLP-2 / PL-5" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Pileta</label>
-                            <input type="text" id="canchaPileta" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: A / B / C" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Cancha #</label>
-                            <input type="text" id="canchaNumero" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Número de cancha" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Material</label>
-                            <div class="relative">
-                                <select id="canchaMaterial" class="w-full bg-mining-900 border border-mining-700 text-white p-2.5 rounded focus:border-mining-accent outline-none appearance-none">
-                                    <option value="FINO">FINO</option>
-                                    <option value="MASIVO">MASIVO</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div
-                            ></div>
+                            <label class="text-xs text-slate-400 font-bold uppercase">Zona (Ej: PC3)</label>
+                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC3, PC4">
                         </div>
                     </div>
-                    
-                    <div id="fieldsLiberacion" class="hidden space-y-5">
-                        
-                        <h4 class="text-sm font-bold text-yellow-400">Datos del Elemento Liberado</h4>
 
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="liberacionZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC3 / MLP2" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Pileta</label>
-                            <input type="text" id="liberacionPileta" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: A / B / C" required>
-                        </div>
-                        
-                        <div class="space-y-2">
-                            <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Liberación</label>
-                            <div class="relative">
-                                <select id="selectTipoLiberacion" onchange="toggleLiberacionFields()" required class="w-full bg-mining-900 border border-mining-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-mining-accent focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
-                                    <option value="" disabled selected>Seleccione elemento a liberar...</option>
-                                    <option value="muro">MURO (Capa)</option>
-                                    <option value="cancha">CANCHA</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div
-                            ></div>
-                        </div>
-                        
-                        <div id="liberacionFieldsMuro" class="hidden space-y-5 p-4 bg-mining-900 rounded border border-mining-700">
-                            <p class="text-sm text-yellow-500"><i class="fa-solid fa-lightbulb mr-1"></i> La liberación del Muro lo marcará como **COMPLETO**.</p>
-                            <div class="space-y-1">
-                                <label class="text-xs text-slate-400 font-bold uppercase">Muro</label>
-                                <input type="text" id="liberacionMuroId" class="w-full bg-mining-800 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A / M3AB" data-required="true">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs text-slate-400 font-bold uppercase">Capa</label>
-                                <input type="text" id="liberacionMuroCapa" class="w-full bg-mining-800 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: BASAL / 1 / 2" data-required="true">
-                            </div>
-                        </div>
-
-                        <div id="liberacionFieldsCancha" class="hidden space-y-5 p-4 bg-mining-900 rounded border border-mining-700">
-                            <p class="text-sm text-yellow-500"><i class="fa-solid fa-lightbulb mr-1"></i> La liberación de Cancha requiere especificar el **Material**.</p>
-                            <div class="space-y-1">
-                                <label class="text-xs text-slate-400 font-bold uppercase">Cancha #</label>
-                                <input type="text" id="liberacionCanchaNumero" class="w-full bg-mining-800 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Número de cancha" data-required="true">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-xs text-slate-400 font-bold uppercase">Material</label>
-                                <div class="relative">
-                                    <select id="liberacionCanchaMaterial" class="w-full bg-mining-800 border border-mining-700 text-white p-2.5 rounded focus:border-mining-accent outline-none appearance-none" data-required="true">
-                                        <option value="" disabled selected>Seleccionar material...</option>
-                                        <option value="FINO">FINO</option>
-                                        <option value="MASIVO">MASIVO</option>
-                                    </select>
-                                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                                        <i class="fa-solid fa-chevron-down text-xs"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                     <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2">
                         <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
                     </button>
                     
-                    <button type="button" onclick="cancelarModificacion()" id="cancelModificationBtn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-all active:scale-95 flex justify-center items-center gap-2 mt-3 hidden">
-                        <i class="fa-solid fa-xmark"></i> Cancelar Modificación
-                    </button>
-
                     <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
-                        Borrar todos los datos (Admin)
+                        Borrar todos los datos de prueba
                     </button>
                 </form>
             </div>
@@ -320,22 +190,23 @@
         <section id="viewVisualizacion" class="hidden fade-in">
             <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-mining-700 pb-4">
                 <div>
-                    <h2 class="text-3xl font-light text-white">Visualización de Obra (Muros/Canchas)</h2>
-                    <p class="text-sm text-slate-400 mt-1">Clasificación por Zonas y Tipos</p>
+                    <h2 class="text-3xl font-light text-white">Visualización de Reporte</h2>
+                    <p class="text-sm text-slate-400 mt-1">Listado de todos los registros de **Muros** cargados.</p>
                 </div>
                 <div class="text-right mt-3 sm:mt-0">
                     <span id="totalRegistros" class="text-2xl font-bold text-mining-accent">0</span>
                     <p class="text-xs text-slate-500 uppercase tracking-wide">Registros</p>
                 </div>
             </header>
-
+            
             <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+                <p class="text-sm text-slate-500">Sin filtros activos en Modo Local.</p>
             </div>
 
-            <div id="dashboardContainer" class="grid grid-cols-1 gap-8 pb-20">
-                <div class="text-center py-20 text-slate-600">
-                    <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros cargados aún.</p>
+            <div id="dashboardContainer" class="grid grid-cols-1 gap-6 pb-20">
+                <div class="text-center py-20 text-slate-600 col-span-full">
+                    <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
+                    <p>No hay registros de muros cargados aún.</p>
                 </div>
             </div>
         </section>
@@ -345,21 +216,9 @@
                 <h2 class="text-3xl font-light text-white flex items-center gap-2">
                     <i class="fa-solid fa-mountain text-mining-accent"></i> Perfil de Muros
                 </h2>
-                <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. Se muestra el **último registro** por capa.</p>
+                <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. **Datos de prueba locales.**</p>
             </header>
             
-            <div id="murosZoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
-            </div>
-
-            <div class="mb-6 p-4 bg-mining-800 rounded-lg border border-mining-700">
-                <h3 class="text-lg font-semibold text-white mb-2">Leyenda</h3>
-                <div class="flex flex-wrap gap-4 text-sm">
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-success rounded-full"></span> Completa</span>
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-warning rounded-full"></span> Parcial</span>
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-700 rounded-full"></span> Sin Datos</span>
-                </div>
-            </div>
-
             <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
                 <div class="text-center py-20 text-slate-600 col-span-full">
                     <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
@@ -367,33 +226,16 @@
                 </div>
             </div>
             
-        </section>
-        
-        <section id="viewVisualizacionLiberaciones" class="hidden fade-in">
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-mining-700 pb-4">
-                <div>
-                    <h2 class="text-3xl font-light text-white flex items-center gap-2">
-                        <i class="fa-solid fa-check-double text-mining-warning"></i> Registros de Liberación
-                    </h2>
-                    <p class="text-sm text-slate-400 mt-1">Histórico de elementos liberados.</p>
-                </div>
-                <div class="text-right mt-3 sm:mt-0">
-                    <span id="totalLiberaciones" class="text-2xl font-bold text-mining-warning">0</span>
-                    <p class="text-xs text-slate-500 uppercase tracking-wide">Liberaciones</p>
-                </div>
-            </header>
-
-            <div id="liberacionFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
-            </div>
-
-            <div id="liberacionDashboard" class="grid grid-cols-1 gap-4 pb-20">
-                <div class="text-center py-20 text-slate-600">
-                    <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros de liberaciones cargados aún.</p>
+            <div class="mt-8 p-4 bg-mining-800 rounded-lg border border-mining-700">
+                <h3 class="text-lg font-semibold text-white mb-2">Leyenda</h3>
+                <div class="flex flex-wrap gap-4 text-sm">
+                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-success rounded-full"></span> Completa</span>
+                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-warning rounded-full"></span> Parcial</span>
+                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-700 rounded-full"></span> Sin Datos</span>
                 </div>
             </div>
+            
         </section>
-
 
     </main>
 
@@ -423,50 +265,44 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // =========================================================================
-        // === 1. CONFIGURACIÓN INICIAL DE SUPABASE ===
+        // === 1. CONFIGURACIÓN INICIAL DE MODO LOCAL Y BASE DE DATOS MOCK ===
         // =========================================================================
         
-        // **!!! DEBES REEMPLAZAR ESTOS VALORES CON TUS CREDENCIALES DE SUPABASE !!!**
-        const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
-
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        let currentUser = null; 
-        
-        let currentReportZoneFilter = 'TODOS'; 
-        let currentMurosZoneFilter = 'TODOS'; 
-        let currentLiberacionZoneFilter = 'TODOS'; 
-
-        const CAPA_SVG_MAP = {
-            'BASAL': 'capa-basal', '1': 'capa-1', '2': 'capa-2', '3': 'capa-3', 
-            '4': 'capa-4', '5': 'capa-5', '6': 'capa-6', 
+        // BASE DE DATOS DE PRUEBA LOCAL (MOCK)
+        let mockDatabase = {
+            muros_registros: JSON.parse(localStorage.getItem('muros_registros_local')) || [],
+            canchas_registros: JSON.parse(localStorage.getItem('canchas_registros_local')) || []
         };
         
-        const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
-        
-        // =========================================================================
-        // === 2. FUNCIÓN DE NORMALIZACIÓN Y TIEMPO ===
-        // =========================================================================
-
-        function normalizarZona(zona) {
-            if (typeof zona !== 'string') return '';
-            let texto = zona.toUpperCase();
-            return texto.replace(/[^A-Z0-9]/g, ''); 
-        }
-        
-        function esRegistroNuevo(recordFecha) {
-            const now = new Date();
-            const ONE_DAY_MS = 86400000; 
-            const diff = now.getTime() - recordFecha.getTime();
-            
-            return diff <= ONE_DAY_MS;
+        function saveMockDb() {
+            localStorage.setItem('muros_registros_local', JSON.stringify(mockDatabase.muros_registros));
+            localStorage.setItem('canchas_registros_local', JSON.stringify(mockDatabase.canchas_registros));
         }
 
+        // Simulación de usuario logeado en modo local
+        const currentUser = { id: 'local-user', user_metadata: { nombre_completo: 'Usuario Local' }, email: 'local@test.com' };
+        
+        let currentZoneFilter = 'TODOS';
+        
+        // Mapeo de nombres de capa (en la base de datos) a IDs de elemento SVG
+        const CAPA_SVG_MAP = {
+            'BASAL': 'capa-basal',
+            '1': 'capa-1',
+            '2': 'capa-2',
+            '3': 'capa-3',
+            '4': 'capa-4',
+            '5': 'capa-5',
+            '6': 'capa-6', // Capa 6 es el Coronamiento
+        };
+        
+        // La lista de capas válidas para el formulario (se ha quitado CORONAMIENTO)
+        const CAPAS_VALIDAS_FORM = ['BASAL', '1', '2', '3', '4', '5', '6'];
+
+
         // =========================================================================
-        // === 3. AUTENTICACIÓN Y MANEJO DE VISTAS ===
+        // === 2. MANEJO DE VISTAS (MODIFICADO PARA IGNORAR LOGIN) ===
         // =========================================================================
         
         function cambiarVista(vista) {
@@ -474,1883 +310,548 @@
                 login: document.getElementById('viewLogin'),
                 carga: document.getElementById('viewCarga'),
                 visualizacion: document.getElementById('viewVisualizacion'),
-                visualizacionMuros: document.getElementById('viewVisualizacionMuros'),
-                visualizacionLiberaciones: document.getElementById('viewVisualizacionLiberaciones') 
+                visualizacionMuros: document.getElementById('viewVisualizacionMuros')
             };
-            const nav = document.getElementById('mainNav');
-
-            Object.values(views).forEach(v => {
-                v.classList.replace('flex', 'hidden');
-                v.classList.replace('block', 'hidden');
-            });
             
-            if (vista === 'login') {
-                views.login.classList.replace('hidden', 'flex');
-                nav.classList.add('hidden'); 
-            } else {
-                nav.classList.remove('hidden'); 
-                views[vista].classList.replace('hidden', 'block');
-            }
+            Object.values(views).forEach(v => v.classList.replace('flex', 'hidden'));
+            Object.values(views).forEach(v => v.classList.replace('block', 'hidden'));
+
+            views[vista].classList.replace('hidden', vista === 'login' ? 'flex' : 'block');
             
             if (vista === 'visualizacion') {
-                renderizarDatosReporte(); 
+                renderizarDatos();
             } else if (vista === 'visualizacionMuros') {
-                 renderizarMuros(); 
-            } else if (vista === 'visualizacionLiberaciones') { 
-                 renderizarLiberaciones(); 
+                renderizarMuros(); 
             }
         }
         
         document.addEventListener('DOMContentLoaded', initializeApp);
 
-        async function initializeApp() {
-            document.getElementById('mainNav').classList.add('hidden');
-            document.getElementById('viewCarga').classList.add('hidden');
-            document.getElementById('viewVisualizacion').classList.add('hidden');
-            document.getElementById('viewVisualizacionMuros').classList.add('hidden');
-            document.getElementById('viewVisualizacionLiberaciones').classList.add('hidden');
-            
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            currentUser = user; 
-            
-            if (!currentUser) {
-                document.getElementById('viewLogin').classList.replace('hidden', 'flex'); 
-                
-            } else {
-                const userMetadata = currentUser.user_metadata;
-                const userName = userMetadata.nombre_completo || currentUser.email; 
-
-                document.getElementById('userInfo').innerText = `| Sesión: ${userName}`;
-                
-                document.getElementById('viewLogin').classList.replace('flex', 'hidden');
-                
-                document.getElementById('mainNav').classList.remove('hidden');
-                cambiarPestana('carga'); 
-            }
+        function initializeApp() {
+            document.getElementById('userInfo').innerText = `| Sesión: ${currentUser.user_metadata.nombre_completo}`;
+            cambiarVista('carga'); 
+            cambiarPestana('carga'); 
         }
         
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-            
-            if (error) {
-                console.error("Login Error:", error);
-                showAlertModal(`Error al iniciar sesión: ${error.message}`);
-            } else {
-                currentUser = data.user;
-                document.getElementById('loginForm').reset();
-                initializeApp(); 
-            }
-        }
-
-        async function handleLogout() {
-            const { error } = await supabaseClient.auth.signOut();
-            
-            if (error) {
-                console.error("Logout Error:", error);
-                showAlertModal(`Error al cerrar sesión: ${error.message}`);
-            } else {
-                currentUser = null;
-                cambiarVista('login'); 
-            }
-        }
-
+        function handleLogin() { /* Ignorado */ }
+        function handleLogout() { showAlertModal("El 'Cerrar Sesión' está deshabilitado en Modo Local. Actualice la página para borrar datos de sesión."); }
+        
         function cambiarPestana(tab) {
-            const views = ['carga', 'visualizacion', 'visualizacionMuros', 'visualizacionLiberaciones'];
+            const views = ['carga', 'visualizacion', 'visualizacionMuros'];
             const buttons = {
                 carga: document.getElementById('btnCarga'),
                 visualizacion: document.getElementById('btnVer'),
-                visualizacionMuros: document.getElementById('btnVerMuros'),
-                visualizacionLiberaciones: document.getElementById('btnVerLiberaciones')
+                visualizacionMuros: document.getElementById('btnVerMuros')
             };
             
             views.forEach(view => {
-                const btn = buttons[view];
-                if (btn) {
-                    if (view === tab) {
-                        cambiarVista(tab);
-                        btn.className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
-                    } else {
-                        btn.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-                    }
+                if (view === tab) {
+                    cambiarVista(tab);
+                    buttons[view].className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
+                } else {
+                    buttons[view].className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
                 }
             });
         }
         
         // =========================================================================
-        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) ===
+        // === 3. LÓGICA DE DATOS (MOCK CRUD) ===
         // =========================================================================
-
+        
         async function obtenerDatos() {
-            if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {}, liberaciones: [] }; 
+            await new Promise(resolve => setTimeout(resolve, 10)); 
 
-            const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
-            const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
-            // 🔥 Asegúrate que tu tabla 'liberaciones_registros' existe con estas columnas 🔥
-            const selectQueryLiberaciones = 'id, fecha, zona, pileta, tipo_elemento, elemento_id, capa, material, turno, nombre_usuario'; 
+            const murosRaw = mockDatabase.muros_registros;
+            const canchasRaw = mockDatabase.canchas_registros;
             
-            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
-            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas).order('fecha', { ascending: false });
-            const { data: liberacionesRaw, error: liberacionesError } = await supabaseClient.from('liberaciones_registros').select(selectQueryLiberaciones).order('fecha', { ascending: false }); 
-            
-            if (murosError || canchasError || liberacionesError) {
-                console.error("Error al obtener datos de Supabase:", murosError || canchasError || liberacionesError);
-                // Aquí, idealmente, mostrarías un modal de error crítico
-                return { reporteDetallado: {}, perfilesMuros: {}, liberaciones: [] }; 
-            }
-            
-            let datosDB = {}; 
-            let perfilesMuros = {}; 
-            let liberaciones = []; 
-            
-            const actualizarUltimaFechaZona = (zona, fechaStr) => {
-                const fecha = new Date(fechaStr);
-                if (!datosDB[zona]) {
-                    datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: fecha };
-                } else if (!datosDB[zona].ultimaFecha || fecha > datosDB[zona].ultimaFecha) {
-                    datosDB[zona].ultimaFecha = fecha;
-                }
-            };
+            let datosDB = { muros: {}, canchas: {}, registrosMuros: [] };
 
-
-            // 1. Procesar Muros (Reporte Detallado y Perfiles)
+            // 1. Procesar Muros (para el Perfil SVG)
             murosRaw.forEach(record => {
-                const zona = record.zona; 
-                const muroId = record.muro_id.toUpperCase();
-                const capa = record.capa.toUpperCase();
-                const recordFecha = new Date(record.fecha);
-                const claveMuro = `${zona} - ${muroId}`; 
+                const zona = record.zona.trim().toUpperCase();
+                const muroId = record.muro_id.trim().toUpperCase();
+                const capa = record.capa.trim().toUpperCase();
                 
-                actualizarUltimaFechaZona(zona, record.fecha); 
-
-                // A. Reporte Detallado
-                if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
-
-                datosDB[zona].muros[muroId].push({
-                    id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
-                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString(), fechaRaw: recordFecha 
-                });
+                // ClaveMuro usa el formato completo "ZONA - MURO_ID"
+                const claveMuro = `${zona} - ${muroId}`;
                 
-                // B. Perfiles Muros (Lógica para determinar el último estado por capa)
-                if (!perfilesMuros[claveMuro]) {
-                    perfilesMuros[claveMuro] = {
-                        zona: zona, 
-                        muroId: muroId,
-                        ultimaFecha: recordFecha, 
-                        capasEstado: {} 
+                if (!datosDB.muros[claveMuro]) {
+                    datosDB.muros[claveMuro] = {
+                        registros: [],
+                        capasEstado: {}
                     };
-                } else if (recordFecha > perfilesMuros[claveMuro].ultimaFecha) {
-                    perfilesMuros[claveMuro].ultimaFecha = recordFecha; 
                 }
                 
-                // Solo registramos el estado si es el más reciente para esa capa
-                const capaExistente = perfilesMuros[claveMuro].capasEstado[capa];
-                if (!capaExistente || recordFecha > capaExistente.fecha) {
-                    perfilesMuros[claveMuro].capasEstado[capa] = {
+                // Almacenar el registro histórico para la tarjeta de Perfil
+                datosDB.muros[claveMuro].registros.push({
+                    id: record.id,
+                    capa: capa,
+                    estado: record.estado,
+                    turno: record.turno, 
+                    nombreUsuario: record.nombre_usuario || 'LOCAL', 
+                    fecha: new Date(record.fecha)
+                });
+                
+                // Lógica de MANTENER ESTADO (solo guardamos el registro más reciente por capa)
+                if (!datosDB.muros[claveMuro].capasEstado[capa] || datosDB.muros[claveMuro].capasEstado[capa].fecha < new Date(record.fecha)) {
+                    datosDB.muros[claveMuro].capasEstado[capa] = {
                         estado: record.estado,
-                        fecha: recordFecha
+                        fecha: new Date(record.fecha)
                     };
                 }
             });
-
-            // 2. Procesar Canchas (Reporte Detallado)
-            canchasRaw.forEach(record => {
-                const zona = record.zona; 
-                
-                actualizarUltimaFechaZona(zona, record.fecha); 
-
-                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: new Date(record.fecha) };
-                if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
-
-                datosDB[zona].canchas.push({
-                    id: record.id, pileta: record.pileta.toUpperCase(), numero: record.numero.toUpperCase(),
-                    material: record.material, turno: record.turno, 
-                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
-                    fecha: new Date(record.fecha).toLocaleString(), fechaRaw: new Date(record.fecha)
-                });
-            });
             
-            // 3. Procesar Liberaciones (Reporte de Liberaciones)
-            liberacionesRaw.forEach(record => {
-                const recordFecha = new Date(record.fecha);
-                liberaciones.push({
-                    id: record.id, 
-                    zona: record.zona,
-                    pileta: record.pileta ? record.pileta.toUpperCase() : 'N/A',
-                    tipoElemento: record.tipo_elemento.toUpperCase(),
-                    elementoId: record.elemento_id ? record.elemento_id.toUpperCase() : 'N/A',
-                    capa: record.capa ? record.capa.toUpperCase() : 'N/A',
-                    material: record.material ? record.material.toUpperCase() : 'N/A',
-                    turno: record.turno,
-                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
-                    fecha: recordFecha.toLocaleString(), 
-                    fechaRaw: recordFecha
-                });
-                
-                actualizarUltimaFechaZona(record.zona, record.fecha);
-            });
+            // 2. Registros Muros (para la sección de Reporte detallado)
+            datosDB.registrosMuros = murosRaw.map(record => ({
+                ...record,
+                fecha: new Date(record.fecha),
+                clave: `${record.zona}-${record.muro_id}-${record.capa}-${record.id}` // Clave única para el reporte
+            })).sort((a, b) => b.fecha.getTime() - a.fecha.getTime()); // Ordenar del más reciente al más antiguo
+
+            return datosDB;
+        }
+
+        function validarCamposMuro() {
+            const zona = document.getElementById('muroZona').value.trim();
+            const muroId = document.getElementById('muroId').value.trim();
+            const capa = document.getElementById('muroCapa').value.trim().toUpperCase();
+            const esParcial = document.getElementById('checkParcial').checked;
+            const esCompleta = document.getElementById('checkCompleta').checked;
             
-            return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros, liberaciones: liberaciones }; 
+            
+            if (!zona || !muroId || !capa) {
+                showAlertModal("Debe completar los campos Zona, Muro y Capa.");
+                return false;
+            }
+            if (!CAPAS_VALIDAS_FORM.includes(capa)) {
+                showAlertModal(`Capa inválida. Use: ${CAPAS_VALIDAS_FORM.join(', ')}.`);
+                return false;
+            }
+            if (!esParcial && !esCompleta) {
+                showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa).");
+                return false;
+            }
+            return true;
         }
 
         async function guardarDatos(e) {
             e.preventDefault();
-            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
 
             const tipo = document.getElementById('selectTipo').value;
-            const recordIdToModify = document.getElementById('recordIdToModify').value;
             const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); 
-
-            const userMetadata = currentUser.user_metadata;
-            const userName = userMetadata.nombre_completo || currentUser.email;
-            
-            let tabla = '';
-            let objetoRegistro = {};
-            let isUpdate = !!recordIdToModify;
-            let successMessage = '';
+            const userName = currentUser.user_metadata.nombre_completo;
             
             if (tipo === 'muro') {
-                tabla = 'muros_registros';
-                
-                const zonaRaw = document.getElementById('muroZona').value.trim();
-                const zona = normalizarZona(zonaRaw); 
+                if (!validarCamposMuro()) return; 
 
+                const zona = document.getElementById('muroZona').value.trim().toUpperCase();
                 const muroId = document.getElementById('muroId').value.trim().toUpperCase();
                 const capa = document.getElementById('muroCapa').value.trim().toUpperCase(); 
                 const esParcial = document.getElementById('checkParcial').checked;
-                const esCompleta = document.getElementById('checkCompleta').checked;
 
-                if (!esParcial && !esCompleta) {
-                    return showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa) para guardar el registro.");
-                }
-
-                objetoRegistro = {
-                    zona: zona, 
+                const objetoRegistro = {
+                    id: Date.now(),
+                    zona: zona,
                     muro_id: muroId,
                     capa: capa,
                     estado: esParcial ? 'parcial' : 'completa',
                     turno: turno, 
                     user_id: currentUser.id,
-                    nombre_usuario: userName 
-                };
-                successMessage = isUpdate ? "Registro de Muro modificado correctamente." : "Registro de Muro guardado correctamente";
-
-            } else if (tipo === 'cancha') { 
-                tabla = 'canchas_registros';
-                
-                const zonaRaw = document.getElementById('canchaZona').value.trim();
-                const zona = normalizarZona(zonaRaw); 
-
-                const pileta = document.getElementById('canchaPileta').value.trim().toUpperCase();
-                const cancha = document.getElementById('canchaNumero').value.trim().toUpperCase();
-                const material = document.getElementById('canchaMaterial').value;
-                
-                objetoRegistro = {
-                    zona: zona, 
-                    pileta: pileta,
-                    numero: cancha,
-                    material: material,
-                    turno: turno, 
-                    user_id: currentUser.id,
-                    nombre_usuario: userName 
-                };
-                successMessage = isUpdate ? "Registro de Cancha modificado correctamente." : "Registro de Cancha guardado correctamente";
-
-            } else if (tipo === 'liberacion') { 
-                
-                const zonaRaw = document.getElementById('liberacionZona').value.trim();
-                const zona = normalizarZona(zonaRaw);
-                const pileta = document.getElementById('liberacionPileta').value.trim().toUpperCase();
-                const tipoLiberacion = document.getElementById('selectTipoLiberacion').value;
-                
-                let liberacionResult = { error: null };
-                let liberacionRecord = {
-                    zona: zona,
-                    pileta: pileta,
-                    tipo_elemento: tipoLiberacion,
-                    turno: turno,
-                    user_id: currentUser.id,
-                    nombre_usuario: userName 
+                    nombre_usuario: userName,
+                    fecha: new Date().toISOString()
                 };
                 
-                if (tipoLiberacion === 'muro') {
-                    const muroId = document.getElementById('liberacionMuroId').value.trim().toUpperCase();
-                    const capa = document.getElementById('liberacionMuroCapa').value.trim().toUpperCase();
-                    
-                    // 1. Buscar el registro más reciente de ese Muro/Capa
-                    const { data: registroExistente, error: searchError } = await supabaseClient
-                        .from('muros_registros')
-                        .select('id, estado')
-                        .eq('zona', zona)
-                        .eq('muro_id', muroId)
-                        .eq('capa', capa)
-                        .order('fecha', { ascending: false })
-                        .limit(1)
-                        .single();
-                        
-                    if (searchError || !registroExistente) {
-                        return showAlertModal(`Error: No se encontró un registro cargado previamente para el muro ${muroId}, capa ${capa} en la zona ${zona}.`);
-                    }
+                mockDatabase.muros_registros.push(objetoRegistro);
 
-                    if (registroExistente.estado === 'completa') {
-                        // Solo registra la liberación, no actualiza el estado (ya está completo)
-                        successMessage = `Muro/Capa ${muroId}/${capa} ya estaba COMPLETO. Registrando liberación.`;
-                    } else {
-                        // 2. Modificar el registro existente (Muro de 'parcial' a 'completa')
-                        const updateObj = { estado: 'completa', turno: turno, nombre_usuario: userName };
-                        
-                        liberacionResult = await supabaseClient
-                            .from('muros_registros')
-                            .update(updateObj)
-                            .eq('id', registroExistente.id);
-                            
-                        successMessage = `Muro/Capa ${muroId}/${capa} en ${zona} liberado y actualizado a **COMPLETO**.`;
-                    }
-                        
-                    // 3. Crear el registro de Liberación
-                    liberacionRecord.elemento_id = muroId;
-                    liberacionRecord.capa = capa;
-                    
-                } else if (tipoLiberacion === 'cancha') {
-                    const canchaNumero = document.getElementById('liberacionCanchaNumero').value.trim().toUpperCase();
-                    const material = document.getElementById('liberacionCanchaMaterial').value;
-                    
-                    // 1. Crear el registro de Liberación
-                    liberacionRecord.elemento_id = canchaNumero;
-                    liberacionRecord.material = material;
-                    
-                    successMessage = `Registro de Cancha ${canchaNumero} en ${zona} con material **${material}** cargado como liberación.`;
-                }
-
-                // Insertar el registro de Liberación
-                const { error: insertError } = await supabaseClient
-                    .from('liberaciones_registros')
-                    .insert([liberacionRecord]);
-
-                if (liberacionResult.error || insertError) {
-                    console.error("Error al procesar liberación:", liberacionResult.error || insertError);
-                    return showAlertModal(`Error al procesar liberación: ${liberacionResult.error?.message || insertError?.message}`);
-                }
-                
-                mostrarToast(successMessage, 'yellow'); 
-                cancelarModificacion();
-                cambiarPestana('visualizacionLiberaciones'); 
-                return; 
-            }
-
-            // --- Lógica de Muro/Cancha de Carga Normal/Edición ---
-            
-            let error = null;
-            if (isUpdate) {
-                const result = await supabaseClient.from(tabla).update(objetoRegistro).eq('id', recordIdToModify);
-                error = result.error;
-            } else {
-                const result = await supabaseClient.from(tabla).insert([objetoRegistro]);
-                error = result.error;
-            }
-
-            if (error) {
-                console.error("Error al guardar/actualizar en Supabase:", error);
-                showAlertModal(`Error al guardar: ${error.message}`);
-                return;
-            }
-
-            mostrarToast(successMessage, isUpdate ? 'yellow' : 'blue');
-            cancelarModificacion();
-            cambiarPestana('visualizacion');
-        }
-        
-        // =========================================================================
-        // === 5. FUNCIONES DE RENDERIZADO Y FILTRO ===
-        // =========================================================================
-
-        // --- Muros/Canchas (Reporte Detallado) ---
-
-        async function renderizarDatosReporte() {
-            const { reporteDetallado: datosDB } = await obtenerDatos(); 
-            const zonas = Object.keys(datosDB).sort(); 
-
-            let totalCount = 0;
-            zonas.forEach(zona => {
-                const dataZona = datosDB[zona];
-                if(dataZona.canchas) totalCount += dataZona.canchas.length;
-                if(dataZona.muros) {
-                    Object.values(dataZona.muros).forEach(arr => totalCount += arr.length);
-                }
-            });
-            document.getElementById('totalRegistros').innerText = totalCount;
-
-            if (zonas.length === 0) {
-                document.getElementById('zoneFilterContainer').innerHTML = ''; 
-                document.getElementById('dashboardContainer').innerHTML = `
-                    <div class="text-center py-20 text-slate-600 col-span-1">
-                        <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
-                        <p>No hay registros cargados aún.</p>
-                        <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
-                    </div>`;
-                return;
-            }
-
-            renderizarFiltrosReporte(zonas);
-            
-            if (!zonas.includes(currentReportZoneFilter) && currentReportZoneFilter !== 'TODOS') {
-                currentReportZoneFilter = 'TODOS'; 
-            }
-            
-            filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB); 
-        }
-
-        function renderizarFiltrosReporte(zonas) {
-            const filterContainer = document.getElementById('zoneFilterContainer');
-            let buttonsHtml = '';
-            buttonsHtml += generarBotonFiltro('TODOS', currentReportZoneFilter === 'TODOS', 'filtrarPorZonaReporte');
-            zonas.forEach(zona => {
-                buttonsHtml += generarBotonFiltro(zona, currentReportZoneFilter === zona, 'filtrarPorZonaReporte');
-            });
-            filterContainer.innerHTML = buttonsHtml;
-        }
-        
-        async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
-            currentReportZoneFilter = zonaSeleccionada;
-            if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
-            renderizarContenidoReporte(zonaSeleccionada, datosDB);
-            if (updateFilterControls) {
-                actualizarEstilosFiltro('zoneFilterContainer', zonaSeleccionada);
-            }
-        }
-        
-        function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
-            const container = document.getElementById('dashboardContainer');
-            let zonas = Object.keys(datosDB);
-            
-            let zonasAProcesar = zonas;
-            if (zonaSeleccionada !== 'TODOS') {
-                zonasAProcesar = zonas.filter(zona => zona === zonaSeleccionada);
-            }
-            
-            container.innerHTML = ''; 
-            zonasAProcesar.forEach(zona => {
-                const dataZona = datosDB[zona];
-                if (dataZona) {
-                    const cardHtml = generarTarjetaZona(zona, dataZona);
-                    container.innerHTML += cardHtml; 
-                }
-            });
-        }
-        
-        function generarTarjetaZona(zona, dataZona) {
-            let murosHtml = '';
-            let canchasHtml = '';
-            let totalRegistros = 0;
-            const zonasData = {
-                muros: dataZona.muros,
-                canchas: dataZona.canchas
-            };
-
-            // Muros
-            Object.keys(zonasData.muros).sort().forEach(muroId => {
-                const registros = zonasData.muros[muroId].sort((a, b) => b.fechaRaw - a.fechaRaw);
-                totalRegistros += registros.length;
-                murosHtml += generarTarjetaMuro('muro', { muroId: muroId, registros: registros }, zona);
-            });
-
-            // Canchas
-            zonasData.canchas.sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(registro => {
-                totalRegistros++;
-                canchasHtml += generarTarjetaMuro('cancha', registro, zona);
-            });
-
-            const tagNuevoZona = esRegistroNuevo(dataZona.ultimaFecha) 
-                ? '<span class="tag-nuevo">NUEVO</span>' 
-                : '';
-
-            return `
-                <div class="bg-mining-800 rounded-xl p-5 border border-mining-700 shadow-xl fade-in">
-                    <h3 class="text-xl font-bold text-white mb-4 border-b border-mining-700 pb-2 flex justify-between items-center">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-map-pin text-mining-accent"></i> Zona ${zona} ${tagNuevoZona}</span>
-                        <span class="text-sm font-normal text-slate-400">${totalRegistros} registros</span>
-                    </h3>
-                    
-                    <div class="space-y-4">
-                        <h4 class="text-sm font-bold text-slate-300 uppercase mt-4 flex items-center gap-2"><i class="fa-solid fa-cubes text-yellow-400"></i> Muros</h4>
-                        <div class="space-y-3">${murosHtml || '<p class="text-sm text-slate-500 italic">No hay registros de Muros.</p>'}</div>
-                        
-                        <h4 class="text-sm font-bold text-slate-300 uppercase pt-4 border-t border-mining-700 mt-4 flex items-center gap-2"><i class="fa-solid fa-truck-ramp-box text-green-400"></i> Canchas</h4>
-                        <div class="space-y-3">${canchasHtml || '<p class="text-sm text-slate-500 italic">No hay registros de Canchas.</p>'}</div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function generarTarjetaMuro(tipo, data, zona) {
-            if (tipo === 'muro') {
-                const ultimoRegistro = data.registros[0];
-                const totalCapas = data.registros.length;
-                const estadoClase = ultimoRegistro.estado === 'parcial' ? 'bg-mining-warning' : 'bg-mining-success';
-                const tagNuevo = esRegistroNuevo(ultimoRegistro.fechaRaw) 
-                    ? '<span class="tag-nuevo">NUEVO</span>' 
-                    : '';
-
-                return `
-                    <div class="p-3 bg-mining-900 border border-mining-700 rounded-lg flex justify-between items-center hover:shadow-lg transition-all">
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-white flex items-center gap-2">
-                                Muro ${data.muroId} ${tagNuevo}
-                                <span class="ml-2 px-2 py-0.5 text-xs rounded-full text-black ${estadoClase} font-semibold">${ultimoRegistro.estado.toUpperCase()}</span>
-                            </p>
-                            <p class="text-xs text-slate-400">Última Capa: ${ultimoRegistro.capa} | Turno: ${ultimoRegistro.turno}</p>
-                            <p class="text-xs text-slate-500">Total de capas cargadas: ${totalCapas}</p>
-                        </div>
-                        <button onclick="mostrarModalEdicion('${ultimoRegistro.id}', 'muro', '${zona}')" class="text-sm text-slate-400 hover:text-mining-accent transition-colors ml-3">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                    </div>
-                `;
             } else if (tipo === 'cancha') {
-                const tagNuevo = esRegistroNuevo(data.fechaRaw) 
-                    ? '<span class="tag-nuevo">NUEVO</span>' 
-                    : '';
-                
-                return `
-                    <div class="p-3 bg-mining-900 border border-mining-700 rounded-lg flex justify-between items-center hover:shadow-lg transition-all">
-                        <div class="flex-1">
-                            <p class="text-sm font-bold text-white flex items-center gap-2">
-                                Cancha ${data.numero} - Pileta ${data.pileta} ${tagNuevo}
-                                <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-500 text-white font-semibold">${data.material}</span>
-                            </p>
-                            <p class="text-xs text-slate-400">Cargado por: ${data.nombreUsuario} | Turno: ${data.turno}</p>
-                            <p class="text-xs text-slate-500">Fecha: ${data.fecha}</p>
-                        </div>
-                        <button onclick="mostrarModalEdicion('${data.id}', 'cancha', '${zona}')" class="text-sm text-slate-400 hover:text-mining-accent transition-colors ml-3">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </button>
-                    </div>
-                `;
-            }
-        }
-        
-        // --- Liberaciones ---
-
-        async function renderizarLiberaciones() {
-            const { liberaciones: liberacionesRaw } = await obtenerDatos(); 
-            const dashboard = document.getElementById('liberacionDashboard');
-            
-            if (liberacionesRaw.length === 0) {
-                dashboard.innerHTML = `
-                    <div class="text-center py-20 text-slate-600">
-                        <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-20"></i>
-                        <p>No hay registros de liberaciones cargados aún.</p>
-                    </div>`;
-                document.getElementById('liberacionFilterContainer').innerHTML = '';
-                document.getElementById('totalLiberaciones').innerText = 0;
-                return;
-            }
-            
-            const zonasUnicas = [...new Set(liberacionesRaw.map(r => r.zona))].sort();
-            document.getElementById('totalLiberaciones').innerText = liberacionesRaw.length;
-
-            renderizarFiltrosLiberacion(zonasUnicas);
-            
-            if (!zonasUnicas.includes(currentLiberacionZoneFilter) && currentLiberacionZoneFilter !== 'TODOS') {
-                currentLiberacionZoneFilter = 'TODOS'; 
-            }
-            filtrarPorZonaLiberacion(currentLiberacionZoneFilter, false, liberacionesRaw);
-        }
-
-        function renderizarFiltrosLiberacion(zonas) {
-            const filterContainer = document.getElementById('liberacionFilterContainer');
-            let buttonsHtml = '';
-
-            buttonsHtml += generarBotonFiltro('TODOS', currentLiberacionZoneFilter === 'TODOS', 'filtrarPorZonaLiberacion');
-
-            zonas.forEach(zona => {
-                buttonsHtml += generarBotonFiltro(zona, currentLiberacionZoneFilter === zona, 'filtrarPorZonaLiberacion');
-            });
-
-            filterContainer.innerHTML = buttonsHtml;
-        }
-
-        async function filtrarPorZonaLiberacion(zonaSeleccionada, updateFilterControls = true, liberacionesRaw = null) {
-            currentLiberacionZoneFilter = zonaSeleccionada;
-            
-            if (!liberacionesRaw) liberacionesRaw = (await obtenerDatos()).liberaciones; 
-            const dashboard = document.getElementById('liberacionDashboard');
-            dashboard.innerHTML = '';
-            
-            let liberacionesFiltradas = liberacionesRaw.filter(r => zonaSeleccionada === 'TODOS' || r.zona === zonaSeleccionada);
-            liberacionesFiltradas.sort((a, b) => b.fechaRaw - a.fechaRaw);
-
-            if (liberacionesFiltradas.length === 0) {
-                 dashboard.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros de liberación para la zona seleccionada (${zonaSeleccionada}).</p>`;
+                // ... (Lógica de cancha omitida/simulada)
+                const objetoRegistro = { id: Date.now(), fecha: new Date().toISOString() };
+                mockDatabase.canchas_registros.push(objetoRegistro);
             } else {
-                liberacionesFiltradas.forEach(registro => {
-                    const tagNuevo = esRegistroNuevo(registro.fechaRaw) 
-                        ? '<span class="tag-nuevo">NUEVO</span>' 
-                        : '';
-                    
-                    let detalleElemento = '';
-                    let iconClass = 'fa-solid fa-truck-loading';
-                    
-                    if (registro.tipoElemento === 'MURO') {
-                        detalleElemento = `Muro **${registro.elementoId}** / Capa **${registro.capa}**`;
-                        iconClass = 'fa-solid fa-block-brick text-green-400';
-                    } else if (registro.tipoElemento === 'CANCHA') {
-                        detalleElemento = `Cancha **${registro.elementoId}** (${registro.material})`;
-                        iconClass = 'fa-solid fa-mountain-sun text-orange-400';
-                    }
-
-                    const html = `
-                        <div class="bg-mining-800 p-4 rounded-lg border border-mining-700 shadow-md flex items-start gap-4 fade-in">
-                            <i class="${iconClass} text-2xl mt-1"></i>
-                            <div class="flex-1">
-                                <h3 class="text-lg font-bold text-white mb-1">
-                                    Liberación de ${registro.tipoElemento} ${tagNuevo}
-                                </h3>
-                                
-                                <p class="text-sm text-slate-300 mb-1">
-                                    <span class="font-semibold text-yellow-300">${registro.zona}</span> - Pileta ${registro.pileta}: ${detalleElemento}
-                                </p>
-                                
-                                <div class="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
-                                    <span><i class="fa-solid fa-user-gear mr-1"></i> ${registro.nombreUsuario}</span>
-                                    <span><i class="fa-solid fa-clock mr-1"></i> Turno: **${registro.turno}**</span>
-                                    <span><i class="fa-regular fa-calendar-alt mr-1"></i> ${registro.fecha}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    dashboard.innerHTML += html;
-                });
+                return showAlertModal("Debe seleccionar un Tipo de Registro.");
             }
-
-            if (updateFilterControls) {
-                actualizarEstilosFiltro('liberacionFilterContainer', zonaSeleccionada);
-            }
-        }
-        
-        // --- Muros (Perfiles) ---
-
-        async function renderizarMuros() {
-            const { perfilesMuros } = await obtenerDatos();
-            const muros = Object.values(perfilesMuros); 
-            const dashboard = document.getElementById('murosDashboard');
-
-            if (muros.length === 0) {
-                 dashboard.innerHTML = `
-                    <div class="text-center py-20 text-slate-600 col-span-full">
-                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                        <p>No hay registros de muros cargados aún.</p>
-                    </div>`;
-                document.getElementById('murosZoneFilterContainer').innerHTML = '';
-                return;
-            }
-
-            const zonasUnicas = [...new Set(muros.map(m => m.zona))].sort();
-            renderizarFiltrosMuros(zonasUnicas);
-
-            if (!zonasUnicas.includes(currentMurosZoneFilter) && currentMurosZoneFilter !== 'TODOS') {
-                currentMurosZoneFilter = 'TODOS'; 
-            }
-            filtrarPorZonaMuros(currentMurosZoneFilter, false, perfilesMuros);
-        }
-
-        function renderizarFiltrosMuros(zonas) {
-            const filterContainer = document.getElementById('murosZoneFilterContainer');
-            let buttonsHtml = '';
-            buttonsHtml += generarBotonFiltro('TODOS', currentMurosZoneFilter === 'TODOS', 'filtrarPorZonaMuros');
-            zonas.forEach(zona => {
-                buttonsHtml += generarBotonFiltro(zona, currentMurosZoneFilter === zona, 'filtrarPorZonaMuros');
-            });
-            filterContainer.innerHTML = buttonsHtml;
-        }
-
-        async function filtrarPorZonaMuros(zonaSeleccionada, updateFilterControls = true, perfilesMuros = null) {
-            currentMurosZoneFilter = zonaSeleccionada;
-            if (!perfilesMuros) perfilesMuros = (await obtenerDatos()).perfilesMuros;
             
-            const dashboard = document.getElementById('murosDashboard');
-            dashboard.innerHTML = '';
+            saveMockDb();
 
-            let murosAProcesar = Object.values(perfilesMuros).filter(m => zonaSeleccionada === 'TODOS' || m.zona === zonaSeleccionada);
-            murosAProcesar.sort((a, b) => {
-                // Ordenar por muro_id alfanumérico
-                return a.muroId.localeCompare(b.muroId, undefined, { numeric: true, sensitivity: 'base' });
-            });
-
-            if (murosAProcesar.length === 0) {
-                dashboard.innerHTML = `<p class="text-center py-10 text-slate-500 italic col-span-full">No hay muros para la zona seleccionada (${zonaSeleccionada}).</p>`;
-            } else {
-                murosAProcesar.forEach(muro => {
-                    dashboard.innerHTML += generarPerfilMuroSVG(muro);
-                });
-            }
-
-            if (updateFilterControls) {
-                actualizarEstilosFiltro('murosZoneFilterContainer', zonaSeleccionada);
-            }
-        }
-        
-        function generarPerfilMuroSVG(muro) {
-            let capasHtml = '';
-            let capasCompletas = 0;
-            let capasParciales = 0;
-            const totalCapas = CAPAS_ORDENADAS.length;
-
-            CAPAS_ORDENADAS.forEach(capaId => {
-                const estadoData = muro.capasEstado[capaId];
-                let estadoClase = '';
-                let titleText = `Capa ${capaId}: Sin Datos`;
-
-                if (estadoData) {
-                    if (estadoData.estado === 'completa') {
-                        estadoClase = 'color-completa';
-                        capasCompletas++;
-                        titleText = `Capa ${capaId}: Completa (${estadoData.fecha.toLocaleDateString()})`;
-                    } else if (estadoData.estado === 'parcial') {
-                        estadoClase = 'color-parcial';
-                        capasParciales++;
-                        titleText = `Capa ${capaId}: Parcial (${estadoData.fecha.toLocaleDateString()})`;
-                    }
-                }
-                
-                // Generación de la capa SVG (Aquí se necesita la definición real del SVG que se omite por espacio)
-                // Usaremos un div simulado para simplificar y mantener la funcionalidad
-                const simCapClass = `h-8 w-full border border-mining-900 flex items-center justify-center font-bold text-xs ${estadoClase.replace('color-', 'bg-') || 'bg-mining-700'} text-black`;
-
-                capasHtml = `<div class="capa-visual ${simCapClass} relative group">
-                    ${capaId}
-                    <span class="absolute top-full mt-1 px-2 py-1 bg-mining-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity z-10 whitespace-nowrap">${titleText}</span>
-                </div>` + capasHtml; 
-            });
-
-            return `
-                <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-md fade-in">
-                    <h4 class="text-lg font-bold text-white mb-3">Muro ${muro.muroId} (${muro.zona})</h4>
-                    <div class="relative overflow-hidden rounded border border-mining-700">
-                        ${capasHtml}
-                        <div class="h-1 bg-gray-500 w-full"></div>
-                    </div>
-                    <div class="mt-3 text-sm flex justify-between text-slate-400">
-                        <span>C. Completas: <span class="font-bold text-mining-success">${capasCompletas}</span></span>
-                        <span>C. Parciales: <span class="font-bold text-mining-warning">${capasParciales}</span></span>
-                        <span>Total: <span class="font-bold text-white">${totalCapas}</span></span>
-                    </div>
-                </div>
-            `;
-        }
-
-
-        // =========================================================================
-        // === 6. FUNCIONES AUXILIARES (MODALES Y FORMULARIO) ===
-        // =========================================================================
-
-        function handleChecks(estado) {
-            document.getElementById('checkParcial').checked = (estado === 'parcial');
-            document.getElementById('checkCompleta').checked = (estado === 'completa');
-        }
-        
-        // --- Lógica Específica de Carga ---
-
-        function toggleLiberacionFields() {
-            const tipoLiberacion = document.getElementById('selectTipoLiberacion').value;
-            const fieldsMuro = document.getElementById('liberacionFieldsMuro');
-            const fieldsCancha = document.getElementById('liberacionFieldsCancha');
+            mostrarToast("Datos guardados (Mock)", 'blue');
             
-            const fieldsToToggle = [
-                { container: fieldsMuro, inputs: ['liberacionMuroId', 'liberacionMuroCapa'] },
-                { container: fieldsCancha, inputs: ['liberacionCanchaNumero', 'liberacionCanchaMaterial'] }
-            ];
-
-            fieldsToToggle.forEach(item => {
-                const isVisible = (tipoLiberacion === 'muro' && item.container === fieldsMuro) || 
-                                  (tipoLiberacion === 'cancha' && item.container === fieldsCancha);
-
-                if (isVisible) {
-                    item.container.classList.remove('hidden');
-                    item.inputs.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.setAttribute('required', '');
-                    });
-                } else {
-                    item.container.classList.add('hidden');
-                    item.inputs.forEach(id => {
-                        const el = document.getElementById(id);
-                        if (el) el.removeAttribute('required');
-                    });
-                }
-            });
+            resetCargaForm();
+            
+            // Re-renderizar la vista actual
+            const currentView = document.querySelector('section:not(.hidden)').id.replace('view', '');
+            if (currentView === 'visualizacion') {
+                renderizarDatos();
+            } else if (currentView === 'visualizacionMuros') {
+                 renderizarMuros();
+            }
         }
         
+        function mostrarModalLimpiarDB() {
+            showActionModal(
+                "Borrar Datos de Prueba Local",
+                "¿Está seguro de que desea **borrar todos los registros de muros** guardados localmente? Esta acción no se puede deshacer.",
+                () => {
+                    mockDatabase.muros_registros = [];
+                    mockDatabase.canchas_registros = [];
+                    saveMockDb();
+                    mostrarToast("Datos de prueba locales eliminados.", 'red');
+                    
+                    const currentView = document.querySelector('section:not(.hidden)').id.replace('view', '');
+                    if (currentView === 'visualizacion') {
+                        renderizarDatos();
+                    } else if (currentView === 'visualizacionMuros') {
+                         renderizarMuros();
+                    }
+                    document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden');
+                }
+            );
+        }
+        
+        function showActionModal(title, message, onConfirm) {
+            const modal = document.getElementById('actionConfirmationModal');
+            document.getElementById('actionModalTitle').innerText = title;
+            document.getElementById('actionModalMessage').innerHTML = message;
+            
+            const confirmBtn = document.getElementById('actionModalConfirmBtn');
+            confirmBtn.onclick = onConfirm; 
+            
+            modal.classList.replace('hidden', 'flex');
+        }
+
+        function resetCargaForm() {
+            document.getElementById('dataForm').reset();
+            document.getElementById('recordIdToModify').value = "";
+            document.getElementById('selectTipo').value = "";
+            document.getElementById('dataForm').classList.add('hidden');
+            document.getElementById('fieldsMuro').classList.add('hidden');
+            document.getElementById('fieldsCancha').classList.add('hidden');
+            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+            document.getElementById('modificationHint').classList.add('hidden');
+            
+            document.getElementById('checkParcial').checked = false;
+            document.getElementById('checkCompleta').checked = false;
+        }
+        
+        function handleChecks(type) {
+            if (type === 'parcial') {
+                document.getElementById('checkCompleta').checked = false;
+            } else if (type === 'completa') {
+                document.getElementById('checkParcial').checked = false;
+            }
+        }
+
         function toggleForm() {
             const tipo = document.getElementById('selectTipo').value;
             const form = document.getElementById('dataForm');
             const fieldsMuro = document.getElementById('fieldsMuro');
-// =========================================================================
-// === 1. CONFIGURACIÓN INICIAL DE SUPABASE ===
-// =========================================================================
+            const fieldsCancha = document.getElementById('fieldsCancha');
 
-// **!!! DEBES REEMPLAZAR ESTOS VALORES CON TUS CREDENCIALES DE SUPABASE !!!**
-const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null; 
-
-let currentReportZoneFilter = 'TODOS'; 
-let currentMurosZoneFilter = 'TODOS'; 
-let currentLiberacionZoneFilter = 'TODOS'; 
-
-const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
-
-// =========================================================================
-// === 2. FUNCIÓN DE NORMALIZACIÓN Y TIEMPO ===
-// =========================================================================
-
-function normalizarZona(zona) {
-    if (typeof zona !== 'string') return '';
-    let texto = zona.toUpperCase();
-    return texto.replace(/[^A-Z0-9]/g, ''); 
-}
-
-function esRegistroNuevo(recordFecha) {
-    const now = new Date();
-    const ONE_DAY_MS = 86400000; 
-    const diff = now.getTime() - recordFecha.getTime();
-    
-    return diff <= ONE_DAY_MS;
-}
-
-// =========================================================================
-// === 3. AUTENTICACIÓN Y MANEJO DE VISTAS ===
-// =========================================================================
-
-function cambiarVista(vista) {
-    const views = {
-        login: document.getElementById('viewLogin'),
-        carga: document.getElementById('viewCarga'),
-        visualizacion: document.getElementById('viewVisualizacion'),
-        visualizacionMuros: document.getElementById('viewVisualizacionMuros'),
-        visualizacionLiberaciones: document.getElementById('viewVisualizacionLiberaciones') 
-    };
-    const nav = document.getElementById('mainNav');
-
-    Object.values(views).forEach(v => {
-        v.classList.replace('flex', 'hidden');
-        v.classList.replace('block', 'hidden');
-    });
-    
-    if (vista === 'login') {
-        views.login.classList.replace('hidden', 'flex');
-        nav.classList.add('hidden'); 
-    } else {
-        nav.classList.remove('hidden'); 
-        views[vista].classList.replace('hidden', 'block');
-    }
-    
-    if (vista === 'visualizacion') {
-        renderizarDatosReporte(); 
-    } else if (vista === 'visualizacionMuros') {
-         renderizarMuros(); 
-    } else if (vista === 'visualizacionLiberaciones') { 
-         renderizarLiberaciones(); 
-    }
-}
-
-document.addEventListener('DOMContentLoaded', initializeApp);
-
-async function initializeApp() {
-    document.getElementById('mainNav').classList.add('hidden');
-    document.getElementById('viewCarga').classList.add('hidden');
-    document.getElementById('viewVisualizacion').classList.add('hidden');
-    document.getElementById('viewVisualizacionMuros').classList.add('hidden');
-    document.getElementById('viewVisualizacionLiberaciones').classList.add('hidden');
-    
-    const { data: { user } } = await supabaseClient.auth.getUser();
-    currentUser = user; 
-    
-    if (!currentUser) {
-        document.getElementById('viewLogin').classList.replace('hidden', 'flex'); 
-        
-    } else {
-        const userMetadata = currentUser.user_metadata;
-        const userName = userMetadata.nombre_completo || currentUser.email; 
-
-        document.getElementById('userInfo').innerText = `| Sesión: ${userName}`;
-        
-        document.getElementById('viewLogin').classList.replace('flex', 'hidden');
-        
-        document.getElementById('mainNav').classList.remove('hidden');
-        cambiarPestana('carga'); 
-    }
-}
-
-async function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    
-    if (error) {
-        console.error("Login Error:", error);
-        showAlertModal(`Error al iniciar sesión: ${error.message}`);
-    } else {
-        currentUser = data.user;
-        document.getElementById('loginForm').reset();
-        initializeApp(); 
-    }
-}
-
-async function handleLogout() {
-    const { error } = await supabaseClient.auth.signOut();
-    
-    if (error) {
-        console.error("Logout Error:", error);
-        showAlertModal(`Error al cerrar sesión: ${error.message}`);
-    } else {
-        currentUser = null;
-        cambiarVista('login'); 
-    }
-}
-
-function cambiarPestana(tab) {
-    const views = ['carga', 'visualizacion', 'visualizacionMuros', 'visualizacionLiberaciones'];
-    const buttons = {
-        carga: document.getElementById('btnCarga'),
-        visualizacion: document.getElementById('btnVer'),
-        visualizacionMuros: document.getElementById('btnVerMuros'),
-        visualizacionLiberaciones: document.getElementById('btnVerLiberaciones')
-    };
-    
-    views.forEach(view => {
-        const btn = buttons[view];
-        if (btn) {
-            if (view === tab) {
-                cambiarVista(tab);
-                btn.className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
+            if (tipo) {
+                form.classList.remove('hidden');
+                form.classList.add('fade-in');
             } else {
-                btn.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
-            }
-        }
-    });
-}
-
-// =========================================================================
-// === 4. LÓGICA DE DATOS (SUPABASE CRUD) ===
-// =========================================================================
-
-async function obtenerDatos() {
-    if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {}, liberaciones: [] }; 
-
-    const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
-    const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
-    const selectQueryLiberaciones = 'id, fecha, zona, pileta, tipo_elemento, elemento_id, capa, material, turno, nombre_usuario'; 
-    
-    const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
-    const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas).order('fecha', { ascending: false });
-    const { data: liberacionesRaw, error: liberacionesError } = await supabaseClient.from('liberaciones_registros').select(selectQueryLiberaciones).order('fecha', { ascending: false }); 
-    
-    if (murosError || canchasError || liberacionesError) {
-        console.error("Error al obtener datos de Supabase:", murosError || canchasError || liberacionesError);
-        return { reporteDetallado: {}, perfilesMuros: {}, liberaciones: [] }; 
-    }
-    
-    let datosDB = {}; 
-    let perfilesMuros = {}; 
-    let liberaciones = []; 
-    
-    const actualizarUltimaFechaZona = (zona, fechaStr) => {
-        const fecha = new Date(fechaStr);
-        if (!datosDB[zona]) {
-            datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: fecha };
-        } else if (!datosDB[zona].ultimaFecha || fecha > datosDB[zona].ultimaFecha) {
-            datosDB[zona].ultimaFecha = fecha;
-        }
-    };
-
-
-    // 1. Procesar Muros (Reporte Detallado y Perfiles)
-    murosRaw.forEach(record => {
-        const zona = normalizarZona(record.zona); // Asegurar normalización aquí también
-        const muroId = record.muro_id.toUpperCase();
-        const capa = record.capa.toUpperCase();
-        const recordFecha = new Date(record.fecha);
-        const claveMuro = `${zona} - ${muroId}`; 
-        
-        actualizarUltimaFechaZona(zona, record.fecha); 
-
-        // A. Reporte Detallado
-        if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
-
-        datosDB[zona].muros[muroId].push({
-            id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
-            nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString(), fechaRaw: recordFecha 
-        });
-        
-        // B. Perfiles Muros (Lógica para determinar el último estado por capa)
-        if (!perfilesMuros[claveMuro]) {
-            perfilesMuros[claveMuro] = {
-                zona: zona, 
-                muroId: muroId,
-                ultimaFecha: recordFecha, 
-                capasEstado: {} 
-            };
-        } else if (recordFecha > perfilesMuros[claveMuro].ultimaFecha) {
-            perfilesMuros[claveMuro].ultimaFecha = recordFecha; 
-        }
-        
-        // Solo registramos el estado si es el más reciente para esa capa
-        const capaExistente = perfilesMuros[claveMuro].capasEstado[capa];
-        if (!capaExistente || recordFecha > capaExistente.fecha) {
-            perfilesMuros[claveMuro].capasEstado[capa] = {
-                estado: record.estado,
-                fecha: recordFecha
-            };
-        }
-    });
-
-    // 2. Procesar Canchas (Reporte Detallado)
-    canchasRaw.forEach(record => {
-        const zona = normalizarZona(record.zona); // Asegurar normalización aquí también
-        
-        actualizarUltimaFechaZona(zona, record.fecha); 
-
-        if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: new Date(record.fecha) };
-        if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
-
-        datosDB[zona].canchas.push({
-            id: record.id, pileta: record.pileta.toUpperCase(), numero: record.numero.toUpperCase(),
-            material: record.material, turno: record.turno, 
-            nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
-            fecha: new Date(record.fecha).toLocaleString(), fechaRaw: new Date(record.fecha)
-        });
-    });
-    
-    // 3. Procesar Liberaciones (Reporte de Liberaciones)
-    liberacionesRaw.forEach(record => {
-        const zona = normalizarZona(record.zona);
-        const recordFecha = new Date(record.fecha);
-        liberaciones.push({
-            id: record.id, 
-            zona: zona,
-            pileta: record.pileta ? record.pileta.toUpperCase() : 'N/A',
-            tipoElemento: record.tipo_elemento.toUpperCase(),
-            elementoId: record.elemento_id ? record.elemento_id.toUpperCase() : 'N/A',
-            capa: record.capa ? record.capa.toUpperCase() : 'N/A',
-            material: record.material ? record.material.toUpperCase() : 'N/A',
-            turno: record.turno,
-            nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
-            fecha: recordFecha.toLocaleString(), 
-            fechaRaw: recordFecha
-        });
-        
-        actualizarUltimaFechaZona(zona, record.fecha);
-    });
-    
-    return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros, liberaciones: liberaciones }; 
-}
-
-async function guardarDatos(e) {
-    e.preventDefault();
-    if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
-
-    const tipo = document.getElementById('selectTipo').value;
-    const recordIdToModify = document.getElementById('recordIdToModify').value;
-    const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); 
-
-    const userMetadata = currentUser.user_metadata;
-    const userName = userMetadata.nombre_completo || currentUser.email;
-    
-    let tabla = '';
-    let objetoRegistro = {};
-    let isUpdate = !!recordIdToModify;
-    let successMessage = '';
-    
-    if (tipo === 'muro') {
-        tabla = 'muros_registros';
-        
-        const zonaRaw = document.getElementById('muroZona').value.trim();
-        const zona = normalizarZona(zonaRaw); 
-
-        const muroId = document.getElementById('muroId').value.trim().toUpperCase();
-        const capa = document.getElementById('muroCapa').value.trim().toUpperCase(); 
-        const esParcial = document.getElementById('checkParcial').checked;
-        const esCompleta = document.getElementById('checkCompleta').checked;
-
-        if (!esParcial && !esCompleta) {
-            return showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa) para guardar el registro.");
-        }
-
-        objetoRegistro = {
-            zona: zona, 
-            muro_id: muroId,
-            capa: capa,
-            estado: esParcial ? 'parcial' : 'completa',
-            turno: turno, 
-            user_id: currentUser.id,
-            nombre_usuario: userName 
-        };
-        successMessage = isUpdate ? "Registro de Muro modificado correctamente." : "Registro de Muro guardado correctamente";
-
-    } else if (tipo === 'cancha') { 
-        tabla = 'canchas_registros';
-        
-        const zonaRaw = document.getElementById('canchaZona').value.trim();
-        const zona = normalizarZona(zonaRaw); 
-
-        const pileta = document.getElementById('canchaPileta').value.trim().toUpperCase();
-        const cancha = document.getElementById('canchaNumero').value.trim().toUpperCase();
-        const material = document.getElementById('canchaMaterial').value;
-        
-        objetoRegistro = {
-            zona: zona, 
-            pileta: pileta,
-            numero: cancha,
-            material: material,
-            turno: turno, 
-            user_id: currentUser.id,
-            nombre_usuario: userName 
-        };
-        successMessage = isUpdate ? "Registro de Cancha modificado correctamente." : "Registro de Cancha guardado correctamente";
-
-    } else if (tipo === 'liberacion') { 
-        
-        const zonaRaw = document.getElementById('liberacionZona').value.trim();
-        const zona = normalizarZona(zonaRaw);
-        const pileta = document.getElementById('liberacionPileta').value.trim().toUpperCase();
-        const tipoLiberacion = document.getElementById('selectTipoLiberacion').value;
-        
-        let liberacionResult = { error: null };
-        let liberacionRecord = {
-            zona: zona,
-            pileta: pileta,
-            tipo_elemento: tipoLiberacion,
-            turno: turno,
-            user_id: currentUser.id,
-            nombre_usuario: userName 
-        };
-        
-        if (tipoLiberacion === 'muro') {
-            const muroId = document.getElementById('liberacionMuroId').value.trim().toUpperCase();
-            const capa = document.getElementById('liberacionMuroCapa').value.trim().toUpperCase();
-            
-            // 1. Buscar el registro más reciente de ese Muro/Capa
-            const { data: registroExistente, error: searchError } = await supabaseClient
-                .from('muros_registros')
-                .select('id, estado')
-                .eq('zona', zona)
-                .eq('muro_id', muroId)
-                .eq('capa', capa)
-                .order('fecha', { ascending: false })
-                .limit(1)
-                .single();
-                
-            if (searchError || !registroExistente) {
-                return showAlertModal(`Error: No se encontró un registro cargado previamente para el muro ${muroId}, capa ${capa} en la zona ${zona}.`);
+                form.classList.add('hidden');
             }
 
-            if (registroExistente.estado === 'completa') {
-                // Solo registra la liberación, no actualiza el estado (ya está completo)
-                successMessage = `Muro/Capa ${muroId}/${capa} ya estaba COMPLETO. Registrando liberación.`;
-            } else {
-                // 2. Modificar el registro existente (Muro de 'parcial' a 'completa')
-                const updateObj = { estado: 'completa', turno: turno, nombre_usuario: userName };
-                
-                liberacionResult = await supabaseClient
-                    .from('muros_registros')
-                    .update(updateObj)
-                    .eq('id', registroExistente.id);
-                    
-                successMessage = `Muro/Capa ${muroId}/${capa} en ${zona} liberado y actualizado a **COMPLETO**.`;
+            fieldsMuro.classList.add('hidden');
+            fieldsCancha.classList.add('hidden');
+            
+            Array.from(fieldsMuro.querySelectorAll('input')).forEach(input => input.removeAttribute('required'));
+            Array.from(fieldsCancha.querySelectorAll('input')).forEach(input => input.removeAttribute('required'));
+
+            if (tipo === 'muro') {
+                fieldsMuro.classList.remove('hidden');
+                document.getElementById('muroZona').setAttribute('required', '');
+                document.getElementById('muroId').setAttribute('required', '');
+                document.getElementById('muroCapa').setAttribute('required', '');
+
+            } else if (tipo === 'cancha') {
+                fieldsCancha.classList.remove('hidden');
+                document.getElementById('canchaZona').setAttribute('required', '');
+                document.getElementById('canchaPileta').setAttribute('required', '');
+                document.getElementById('canchaNumero').setAttribute('required', '');
             }
-                
-            // 3. Crear el registro de Liberación
-            liberacionRecord.elemento_id = muroId;
-            liberacionRecord.capa = capa;
-            
-        } else if (tipoLiberacion === 'cancha') {
-            const canchaNumero = document.getElementById('liberacionCanchaNumero').value.trim().toUpperCase();
-            const material = document.getElementById('liberacionCanchaMaterial').value;
-            
-            // 1. Crear el registro de Liberación
-            liberacionRecord.elemento_id = canchaNumero;
-            liberacionRecord.material = material;
-            
-            successMessage = `Registro de Cancha ${canchaNumero} en ${zona} con material **${material}** cargado como liberación.`;
         }
 
-        // Insertar el registro de Liberación
-        const { error: insertError } = await supabaseClient
-            .from('liberaciones_registros')
-            .insert([liberacionRecord]);
-
-        if (liberacionResult.error || insertError) {
-            console.error("Error al procesar liberación:", liberacionResult.error || insertError);
-            return showAlertModal(`Error al procesar liberación: ${liberacionResult.error?.message || insertError?.message}`);
-        }
-        
-        mostrarToast(successMessage, 'yellow'); 
-        cancelarModificacion();
-        cambiarPestana('visualizacionLiberaciones'); 
-        return; 
-    }
-
-    // --- Lógica de Muro/Cancha de Carga Normal/Edición ---
-    
-    let error = null;
-    if (isUpdate) {
-        const result = await supabaseClient.from(tabla).update(objetoRegistro).eq('id', recordIdToModify);
-        error = result.error;
-    } else {
-        const result = await supabaseClient.from(tabla).insert([objetoRegistro]);
-        error = result.error;
-    }
-
-    if (error) {
-        console.error("Error al guardar/actualizar en Supabase:", error);
-        showAlertModal(`Error al guardar: ${error.message}`);
-        return;
-    }
-
-    mostrarToast(successMessage, isUpdate ? 'yellow' : 'blue');
-    cancelarModificacion();
-    cambiarPestana('visualizacion');
-}
-
-// =========================================================================
-// === 5. FUNCIONES DE RENDERIZADO Y FILTRO ===
-// =========================================================================
-
-// --- Muros/Canchas (Reporte Detallado) ---
-
-async function renderizarDatosReporte() {
-    const { reporteDetallado: datosDB } = await obtenerDatos(); 
-    const zonas = Object.keys(datosDB).sort(); 
-
-    let totalCount = 0;
-    zonas.forEach(zona => {
-        const dataZona = datosDB[zona];
-        if(dataZona.canchas) totalCount += dataZona.canchas.length;
-        if(dataZona.muros) {
-            Object.values(dataZona.muros).forEach(arr => totalCount += arr.length);
-        }
-    });
-    document.getElementById('totalRegistros').innerText = totalCount;
-
-    if (zonas.length === 0) {
-        document.getElementById('zoneFilterContainer').innerHTML = ''; 
-        document.getElementById('dashboardContainer').innerHTML = `
-            <div class="text-center py-20 text-slate-600 col-span-1">
-                <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
-                <p>No hay registros cargados aún.</p>
-                <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
-            </div>`;
-        return;
-    }
-
-    renderizarFiltrosReporte(zonas);
-    
-    if (!zonas.includes(currentReportZoneFilter) && currentReportZoneFilter !== 'TODOS') {
-        currentReportZoneFilter = 'TODOS'; 
-    }
-    
-    filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB); 
-}
-
-function renderizarFiltrosReporte(zonas) {
-    const filterContainer = document.getElementById('zoneFilterContainer');
-    let buttonsHtml = '';
-    buttonsHtml += generarBotonFiltro('TODOS', currentReportZoneFilter === 'TODOS', 'filtrarPorZonaReporte');
-    zonas.forEach(zona => {
-        buttonsHtml += generarBotonFiltro(zona, currentReportZoneFilter === zona, 'filtrarPorZonaReporte');
-    });
-    filterContainer.innerHTML = buttonsHtml;
-}
-
-async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
-    currentReportZoneFilter = zonaSeleccionada;
-    if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
-    renderizarContenidoReporte(zonaSeleccionada, datosDB);
-    if (updateFilterControls) {
-        actualizarEstilosFiltro('zoneFilterContainer', zonaSeleccionada);
-    }
-}
-
-function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
-    const container = document.getElementById('dashboardContainer');
-    let zonas = Object.keys(datosDB);
-    
-    let zonasAProcesar = zonas;
-    if (zonaSeleccionada !== 'TODOS') {
-        zonasAProcesar = zonas.filter(zona => zona === zonaSeleccionada);
-    }
-    
-    container.innerHTML = ''; 
-    zonasAProcesar.forEach(zona => {
-        const dataZona = datosDB[zona];
-        if (dataZona) {
-            const cardHtml = generarTarjetaZona(zona, dataZona);
-            container.innerHTML += cardHtml; 
-        }
-    });
-}
-
-function generarTarjetaZona(zona, dataZona) {
-    let murosHtml = '';
-    let canchasHtml = '';
-    let totalRegistros = 0;
-    const zonasData = {
-        muros: dataZona.muros,
-        canchas: dataZona.canchas
-    };
-
-    // Muros
-    Object.keys(zonasData.muros).sort().forEach(muroId => {
-        const registros = zonasData.muros[muroId].sort((a, b) => b.fechaRaw - a.fechaRaw);
-        totalRegistros += registros.length;
-        murosHtml += generarTarjetaMuro('muro', { muroId: muroId, registros: registros }, zona);
-    });
-
-    // Canchas
-    zonasData.canchas.sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(registro => {
-        totalRegistros++;
-        canchasHtml += generarTarjetaMuro('cancha', registro, zona);
-    });
-
-    const tagNuevoZona = dataZona.ultimaFecha && esRegistroNuevo(dataZona.ultimaFecha) 
-        ? '<span class="tag-nuevo">NUEVO</span>' 
-        : '';
-
-    return `
-        <div class="bg-mining-800 rounded-xl p-5 border border-mining-700 shadow-xl fade-in">
-            <h3 class="text-xl font-bold text-white mb-4 border-b border-mining-700 pb-2 flex justify-between items-center">
-                <span class="flex items-center gap-2"><i class="fa-solid fa-map-pin text-mining-accent"></i> Zona ${zona} ${tagNuevoZona}</span>
-                <span class="text-sm font-normal text-slate-400">${totalRegistros} registros</span>
-            </h3>
+        function mostrarToast(message, type = 'blue') {
+            const toast = document.getElementById('toast');
+            toast.querySelector('span').innerText = message;
             
-            <div class="space-y-4">
-                <h4 class="text-sm font-bold text-slate-300 uppercase mt-4 flex items-center gap-2"><i class="fa-solid fa-cubes text-yellow-400"></i> Muros</h4>
-                <div class="space-y-3">${murosHtml || '<p class="text-sm text-slate-500 italic">No hay registros de Muros.</p>'}</div>
-                
-                <h4 class="text-sm font-bold text-slate-300 uppercase pt-4 border-t border-mining-700 mt-4 flex items-center gap-2"><i class="fa-solid fa-truck-ramp-box text-green-400"></i> Canchas</h4>
-                <div class="space-y-3">${canchasHtml || '<p class="text-sm text-slate-500 italic">No hay registros de Canchas.</p>'}</div>
-            </div>
-        </div>
-    `;
-}
-
-function generarTarjetaMuro(tipo, data, zona) {
-    if (tipo === 'muro') {
-        const ultimoRegistro = data.registros[0];
-        const totalCapas = data.registros.length;
-        const estadoClase = ultimoRegistro.estado === 'parcial' ? 'bg-mining-warning' : 'bg-mining-success';
-        const tagNuevo = esRegistroNuevo(ultimoRegistro.fechaRaw) 
-            ? '<span class="tag-nuevo">NUEVO</span>' 
-            : '';
-
-        return `
-            <div class="p-3 bg-mining-900 border border-mining-700 rounded-lg flex justify-between items-center hover:shadow-lg transition-all">
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-white flex items-center gap-2">
-                        Muro ${data.muroId} ${tagNuevo}
-                        <span class="ml-2 px-2 py-0.5 text-xs rounded-full text-black ${estadoClase} font-semibold">${ultimoRegistro.estado.toUpperCase()}</span>
-                    </p>
-                    <p class="text-xs text-slate-400">Última Capa: ${ultimoRegistro.capa} | Turno: ${ultimoRegistro.turno}</p>
-                    <p class="text-xs text-slate-500">Total de capas cargadas: ${totalCapas}</p>
-                </div>
-                <button onclick="mostrarModalEdicion('${ultimoRegistro.id}', 'muro', '${zona}')" class="text-sm text-slate-400 hover:text-mining-accent transition-colors ml-3">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-            </div>
-        `;
-    } else if (tipo === 'cancha') {
-        const tagNuevo = esRegistroNuevo(data.fechaRaw) 
-            ? '<span class="tag-nuevo">NUEVO</span>' 
-            : '';
-        
-        return `
-            <div class="p-3 bg-mining-900 border border-mining-700 rounded-lg flex justify-between items-center hover:shadow-lg transition-all">
-                <div class="flex-1">
-                    <p class="text-sm font-bold text-white flex items-center gap-2">
-                        Cancha ${data.numero} - Pileta ${data.pileta} ${tagNuevo}
-                        <span class="ml-2 px-2 py-0.5 text-xs rounded-full bg-slate-500 text-white font-semibold">${data.material}</span>
-                    </p>
-                    <p class="text-xs text-slate-400">Cargado por: ${data.nombreUsuario} | Turno: ${data.turno}</p>
-                    <p class="text-xs text-slate-500">Fecha: ${data.fecha}</p>
-                </div>
-                <button onclick="mostrarModalEdicion('${data.id}', 'cancha', '${zona}')" class="text-sm text-slate-400 hover:text-mining-accent transition-colors ml-3">
-                    <i class="fa-solid fa-pen-to-square"></i>
-                </button>
-            </div>
-        `;
-    }
-}
-
-// --- Liberaciones ---
-
-async function renderizarLiberaciones() {
-    const { liberaciones: liberacionesRaw } = await obtenerDatos(); 
-    const dashboard = document.getElementById('liberacionDashboard');
-    
-    if (liberacionesRaw.length === 0) {
-        dashboard.innerHTML = `
-            <div class="text-center py-20 text-slate-600">
-                <i class="fa-solid fa-clipboard-check text-6xl mb-4 opacity-20"></i>
-                <p>No hay registros de liberaciones cargados aún.</p>
-            </div>`;
-        document.getElementById('liberacionFilterContainer').innerHTML = '';
-        document.getElementById('totalLiberaciones').innerText = 0;
-        return;
-    }
-    
-    const zonasUnicas = [...new Set(liberacionesRaw.map(r => r.zona))].sort();
-    document.getElementById('totalLiberaciones').innerText = liberacionesRaw.length;
-
-    renderizarFiltrosLiberacion(zonasUnicas);
-    
-    if (!zonasUnicas.includes(currentLiberacionZoneFilter) && currentLiberacionZoneFilter !== 'TODOS') {
-        currentLiberacionZoneFilter = 'TODOS'; 
-    }
-    filtrarPorZonaLiberacion(currentLiberacionZoneFilter, false, liberacionesRaw);
-}
-
-function renderizarFiltrosLiberacion(zonas) {
-    const filterContainer = document.getElementById('liberacionFilterContainer');
-    let buttonsHtml = '';
-
-    buttonsHtml += generarBotonFiltro('TODOS', currentLiberacionZoneFilter === 'TODOS', 'filtrarPorZonaLiberacion');
-
-    zonas.forEach(zona => {
-        buttonsHtml += generarBotonFiltro(zona, currentLiberacionZoneFilter === zona, 'filtrarPorZonaLiberacion');
-    });
-
-    filterContainer.innerHTML = buttonsHtml;
-}
-
-async function filtrarPorZonaLiberacion(zonaSeleccionada, updateFilterControls = true, liberacionesRaw = null) {
-    currentLiberacionZoneFilter = zonaSeleccionada;
-    
-    if (!liberacionesRaw) liberacionesRaw = (await obtenerDatos()).liberaciones; 
-    const dashboard = document.getElementById('liberacionDashboard');
-    dashboard.innerHTML = '';
-    
-    let liberacionesFiltradas = liberacionesRaw.filter(r => zonaSeleccionada === 'TODOS' || r.zona === zonaSeleccionada);
-    liberacionesFiltradas.sort((a, b) => b.fechaRaw - a.fechaRaw);
-
-    if (liberacionesFiltradas.length === 0) {
-         dashboard.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros de liberación para la zona seleccionada (${zonaSeleccionada}).</p>`;
-    } else {
-        liberacionesFiltradas.forEach(registro => {
-            const tagNuevo = esRegistroNuevo(registro.fechaRaw) 
-                ? '<span class="tag-nuevo">NUEVO</span>' 
-                : '';
+            let borderColor = '#3b82f6';
+            let iconClass = 'fa-solid fa-circle-check';
             
-            let detalleElemento = '';
-            let iconClass = 'fa-solid fa-truck-loading';
-            
-            if (registro.tipoElemento === 'MURO') {
-                detalleElemento = `Muro **${registro.elementoId}** / Capa **${registro.capa}**`;
-                iconClass = 'fa-solid fa-block-brick text-green-400';
-            } else if (registro.tipoElemento === 'CANCHA') {
-                detalleElemento = `Cancha **${registro.elementoId}** (${registro.material})`;
-                iconClass = 'fa-solid fa-mountain-sun text-orange-400';
+            if (type === 'yellow') {
+                borderColor = '#eab308';
+                iconClass = 'fa-solid fa-circle-exclamation';
+            } else if (type === 'red') {
+                borderColor = '#ef4444';
+                iconClass = 'fa-solid fa-circle-xmark';
             }
 
-            const html = `
-                <div class="bg-mining-800 p-4 rounded-lg border border-mining-700 shadow-md flex items-start gap-4 fade-in">
-                    <i class="${iconClass} text-2xl mt-1"></i>
-                    <div class="flex-1">
-                        <h3 class="text-lg font-bold text-white mb-1">
-                            Liberación de ${registro.tipoElemento} ${tagNuevo}
-                        </h3>
+            toast.style.borderLeftColor = borderColor;
+            toast.querySelector('i').className = `${iconClass} text-[${borderColor}]`;
+
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        
+        function showAlertModal(message) {
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('alertModal').classList.replace('hidden', 'flex');
+        }
+
+        function hideAlertModal() {
+            document.getElementById('alertModal').classList.replace('flex', 'hidden');
+        }
+
+        // =========================================================================
+        // === 4. VISUALIZACIÓN DE PERFIL DE MUROS (SVG CORREGIDO) ===
+        // =========================================================================
+        
+        function generarSvgMuro(claveMuro) {
+            // Constantes
+            const NUM_CAPAS = 7;
+            const width = 200;
+            const height = 240;
+            const topWidth = 50; // Ancho del Coronamiento (Capa 6, estrecho)
+            const bottomWidth = 200; // Ancho de la Basal (ancho)
+            
+            // Ajustar la altura total para dejar espacio para el título y la línea divisoria
+            const titleHeight = 25; // Altura reservada para el título y la línea
+            const drawableHeight = height - titleHeight;
+            const capaHeight = drawableHeight / NUM_CAPAS;
+            
+            const capasPuntos = [];
+            
+            for (let i = 0; i < NUM_CAPAS; i++) {
+                // i = 0 (Coronamiento/Capa 6) ... i = 6 (Basal)
+                
+                // Alturas Y (comienzan después del título: titleHeight)
+                const y_top = titleHeight + i * capaHeight;
+                const y_bottom = titleHeight + (i + 1) * capaHeight;
+                
+                // Cálculo de ancho: El factor de ancho es proporcional a la distancia desde el tope (i)
+                const factor_top = i / NUM_CAPAS; 
+                const factor_bottom = (i + 1) / NUM_CAPAS;
+                
+                // Cálculo de ancho: Anchura linealmente interpolada entre topWidth y bottomWidth
+                const figura_ancho_top = topWidth + (bottomWidth - topWidth) * factor_top;
+                const figura_ancho_bottom = topWidth + (bottomWidth - topWidth) * factor_bottom;
+
+                // Lados X para la capa (centrados)
+                const x1_top = (width - figura_ancho_top) / 2;
+                const x2_top = x1_top + figura_ancho_top;
+                
+                const x1_bottom = (width - figura_ancho_bottom) / 2;
+                const x2_bottom = x1_bottom + figura_ancho_bottom;
+                
+                // Dibuja el polígono de la capa: 
+                // (x1_bottom, y_bottom) -> (x2_bottom, y_bottom) -> (x2_top, y_top) -> (x1_top, y_top) -> Cierre
+                capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
+            }
+
+            // Mapeo de nombres
+            const NOMBRES_CAPAS_SVG = [
+                { id: 'capa-6', label: '6', dbKey: '6' },         // i = 0 (Arriba, estrecho)
+                { id: 'capa-5', label: '5', dbKey: '5' },         // i = 1
+                { id: 'capa-4', label: '4', dbKey: '4' },         // i = 2
+                { id: 'capa-3', label: '3', dbKey: '3' },         // i = 3
+                { id: 'capa-2', label: '2', dbKey: '2' },         // i = 4
+                { id: 'capa-1', label: '1', dbKey: '1' },         // i = 5
+                { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' }, // i = 6 (Abajo, ancho)
+            ];
+
+            // Reemplazar espacios y guiones para crear un ID de elemento seguro para el DOM
+            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+
+
+            let svgContent = `<svg viewBox="0 0 ${width} ${height}" class="w-full" style="max-width: ${width}px; margin: 0 auto; display: block;">`;
+            
+            // 1. Título del Muro (Parte superior izquierda)
+            svgContent += `
+                <text x="5" y="15" 
+                    text-anchor="start" 
+                    font-size="12" 
+                    font-weight="bold"
+                    fill="#e2e8f0" 
+                    class="pointer-events-none">
+                    ${claveMuro}
+                </text>
+            `;
+            
+            // 2. Línea divisoria (antes del gráfico de perfil)
+            svgContent += `
+                <rect x="0" y="${titleHeight - 5}" width="${width}" height="1" fill="#475569"/>
+            `;
+
+            // 3. Dibujar las Capas (i=0 es la de arriba)
+            NOMBRES_CAPAS_SVG.forEach((capaInfo, i) => {
+                svgContent += `
+                    <path 
+                        id="${safeClaveMuro}-${capaInfo.id.replace(/\s/g, '_')}" 
+                        d="${capasPuntos[i]}" 
+                        class="svg-capa"
+                        data-capa-db="${capaInfo.dbKey}"
+                    />
+                `;
+            });
+            
+            // 4. Añadir las Etiquetas de Capa (Centradas en la capa)
+            for (let i = 0; i < NUM_CAPAS; i++) {
+                const yCenter = titleHeight + (i + 0.5) * capaHeight; 
+                
+                // Cálculo de ancho en el centro
+                const factor_center = (i + 0.5) / NUM_CAPAS;
+                const figura_ancho_center = topWidth + (bottomWidth - topWidth) * factor_center;
+                const xCenter = (width - figura_ancho_center) / 2 + (figura_ancho_center / 2);
+
+                // Obtener etiqueta corregida
+                let label = NOMBRES_CAPAS_SVG[i].label;
+                
+                svgContent += `
+                    <text x="${xCenter}" y="${yCenter + 3}" 
+                        text-anchor="middle" 
+                        font-size="8" 
+                        fill="#0f172a" 
+                        class="pointer-events-none font-bold opacity-70">
+                        ${label}
+                    </text>
+                `;
+            }
+
+            svgContent += `</svg>`;
+            return svgContent;
+        }
+
+        async function renderizarMuros() {
+            const datosDB = await obtenerDatos(); 
+            const muros = datosDB.muros || {};
+            const dashboard = document.getElementById('murosDashboard');
+            
+            dashboard.innerHTML = '';
+            const clavesMuros = Object.keys(muros).sort();
+            
+            if (clavesMuros.length === 0) {
+                dashboard.innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-full">
+                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros de muros cargados aún.</p>
+                    </div>`;
+                return;
+            }
+
+            clavesMuros.forEach(claveMuro => {
+                const dataMuro = muros[claveMuro];
+                
+                let html = `
+                    <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
+                        <div class="svg-container relative">
+                            ${generarSvgMuro(claveMuro)}
+                        </div>
                         
-                        <p class="text-sm text-slate-300 mb-1">
-                            <span class="font-semibold text-yellow-300">${registro.zona}</span> - Pileta ${registro.pileta}: ${detalleElemento}
-                        </p>
-                        
-                        <div class="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
-                            <span><i class="fa-solid fa-user-gear mr-1"></i> ${registro.nombreUsuario}</span>
-                            <span><i class="fa-solid fa-clock mr-1"></i> Turno: **${registro.turno}**</span>
-                            <span><i class="fa-regular fa-calendar-alt mr-1"></i> ${registro.fecha}</span>
+                        <div class="mt-4 border-t border-mining-700 pt-3">
+                            <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros:</p>
+                            ${dataMuro.registros.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()).slice(0, 3).map(r => `
+                                <div class="flex justify-between text-xs text-slate-300">
+                                    <span>Capa ${r.capa} (${r.capa === '6' ? 'Coronamiento' : r.capa === 'BASAL' ? 'Basal' : 'Interm.'}):</span>
+                                    <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado} (${r.turno})</span>
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                </div>
-            `;
-            dashboard.innerHTML += html;
-        });
-    }
+                `;
+                dashboard.innerHTML += html;
+                
+                aplicarColorMuro(claveMuro, dataMuro.capasEstado);
+            });
+        }
 
-    if (updateFilterControls) {
-        actualizarEstilosFiltro('liberacionFilterContainer', zonaSeleccionada);
-    }
-}
+        function aplicarColorMuro(claveMuro, capasEstado) {
+            // CRUCIAL: Convertir la claveMuro (que tiene espacios) a un ID seguro para buscar en el DOM
+            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
 
-// --- Muros (Perfiles) ---
+            // Iterar sobre el mapeo de Capa DB Key -> SVG ID y pintar
+            Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
+                const svgId = CAPA_SVG_MAP[dbKey];
+                
+                // Construir el ID completo del path SVG
+                const elementId = `${safeClaveMuro}-${svgId}`;
+                const capaElement = document.getElementById(elementId);
+                
+                if (capaElement) {
+                    capaElement.classList.remove('color-parcial', 'color-completa');
 
-async function renderizarMuros() {
-    const { perfilesMuros } = await obtenerDatos();
-    const muros = Object.values(perfilesMuros); 
-    const dashboard = document.getElementById('murosDashboard');
+                    const estado = capasEstado[dbKey.toUpperCase()]?.estado;
+                    if (estado === 'parcial') {
+                        capaElement.classList.add('color-parcial');
+                    } else if (estado === 'completa') {
+                        capaElement.classList.add('color-completa');
+                    }
+                }
+            });
+        }
+        
+        // =========================================================================
+        // === 5. FUNCIONES DE REPORTE DETALLADO (viewVisualizacion) ===
+        // =========================================================================
+        
+        async function renderizarDatos() {
+            const datosDB = await obtenerDatos(); 
+            const registros = datosDB.registrosMuros;
+            const dashboard = document.getElementById('dashboardContainer');
+            
+            dashboard.innerHTML = '';
+            document.getElementById('totalRegistros').innerText = registros.length;
 
-    if (muros.length === 0) {
-         dashboard.innerHTML = `
-            <div class="text-center py-20 text-slate-600 col-span-full">
-                <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                <p>No hay registros de muros cargados aún.</p>
-            </div>`;
-        document.getElementById('murosZoneFilterContainer').innerHTML = '';
-        return;
-    }
-
-    const zonasUnicas = [...new Set(muros.map(m => m.zona))].sort();
-    renderizarFiltrosMuros(zonasUnicas);
-
-    if (!zonasUnicas.includes(currentMurosZoneFilter) && currentMurosZoneFilter !== 'TODOS') {
-        currentMurosZoneFilter = 'TODOS'; 
-    }
-    filtrarPorZonaMuros(currentMurosZoneFilter, false, perfilesMuros);
-}
-
-function renderizarFiltrosMuros(zonas) {
-    const filterContainer = document.getElementById('murosZoneFilterContainer');
-    let buttonsHtml = '';
-    buttonsHtml += generarBotonFiltro('TODOS', currentMurosZoneFilter === 'TODOS', 'filtrarPorZonaMuros');
-    zonas.forEach(zona => {
-        buttonsHtml += generarBotonFiltro(zona, currentMurosZoneFilter === zona, 'filtrarPorZonaMuros');
-    });
-    filterContainer.innerHTML = buttonsHtml;
-}
-
-async function filtrarPorZonaMuros(zonaSeleccionada, updateFilterControls = true, perfilesMuros = null) {
-    currentMurosZoneFilter = zonaSeleccionada;
-    if (!perfilesMuros) perfilesMuros = (await obtenerDatos()).perfilesMuros;
-    
-    const dashboard = document.getElementById('murosDashboard');
-    dashboard.innerHTML = '';
-
-    let murosAProcesar = Object.values(perfilesMuros).filter(m => zonaSeleccionada === 'TODOS' || m.zona === zonaSeleccionada);
-    murosAProcesar.sort((a, b) => {
-        // Ordenar por muro_id alfanumérico
-        return a.muroId.localeCompare(b.muroId, undefined, { numeric: true, sensitivity: 'base' });
-    });
-
-    if (murosAProcesar.length === 0) {
-        dashboard.innerHTML = `<p class="text-center py-10 text-slate-500 italic col-span-full">No hay muros para la zona seleccionada (${zonaSeleccionada}).</p>`;
-    } else {
-        murosAProcesar.forEach(muro => {
-            dashboard.innerHTML += generarPerfilMuroSVG(muro);
-        });
-    }
-
-    if (updateFilterControls) {
-        actualizarEstilosFiltro('murosZoneFilterContainer', zonaSeleccionada);
-    }
-}
-
-// 🔥 FUNCIÓN DE RENDERIZADO DEL PERFIL DE MURO CORREGIDA 🔥
-function generarPerfilMuroSVG(muro) {
-    let capasHtml = '';
-    let capasCompletas = 0;
-    let capasParciales = 0;
-    const totalCapas = CAPAS_ORDENADAS.length;
-    
-    // Altura de cada capa en el contenedor (ajustar si se añaden más capas, aquí es 1/8 del total - 7 capas + 1 base)
-    const altoCapa = 100 / (totalCapas + 1); 
-
-    CAPAS_ORDENADAS.forEach((capaId, index) => {
-        const estadoData = muro.capasEstado[capaId];
-        let estadoClase = '';
-        let titleText = `Capa ${capaId}: Sin Datos`;
-
-        if (estadoData) {
-            if (estadoData.estado === 'completa') {
-                estadoClase = 'color-completa';
-                capasCompletas++;
-                titleText = `Capa ${capaId}: Completa (${estadoData.fecha.toLocaleDateString()})`;
-            } else if (estadoData.estado === 'parcial') {
-                estadoClase = 'color-parcial';
-                capasParciales++;
-                titleText = `Capa ${capaId}: Parcial (${estadoData.fecha.toLocaleDateString()})`;
+            if (registros.length === 0) {
+                dashboard.innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-full">
+                        <i class="fa-solid fa-file-lines text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros de muros cargados aún.</p>
+                    </div>`;
+                return;
             }
-        }
 
-        // Posición Y de la capa (se calcula desde la parte inferior, usando el índice para determinar la altura)
-        const yPos = index * altoCapa + (altoCapa); // Añadir 'altoCapa' para compensar la base
-        
-        // El punto de la capa se inserta en el DOM para poder aplicarle la clase CSS
-        capasHtml = `
-            <div class="muro-capa" style="height: ${altoCapa}%; bottom: ${yPos}%;" data-estado-capa="${estadoClase}">
-                <span class="capa-label">${capaId}</span>
-                <span class="capa-tooltip">${titleText}</span>
-            </div>
-        ` + capasHtml; // Se inserta al inicio para que el BASAL quede abajo
-    });
-
-    return `
-        <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-md fade-in">
-            <h4 class="text-lg font-bold text-white mb-3">Muro ${muro.muroId} (${muro.zona})</h4>
-            <div class="muro-perfil-container">
-                ${capasHtml}
-                <div class="muro-base" style="height: ${altoCapa}%; bottom: 0;"></div>
-            </div>
-            <div class="mt-3 text-sm flex justify-between text-slate-400">
-                <span>C. Completas: <span class="font-bold text-mining-success">${capasCompletas}</span></span>
-                <span>C. Parciales: <span class="font-bold text-mining-warning">${capasParciales}</span></span>
-                <span>Total: <span class="font-bold text-white">${totalCapas}</span></span>
-            </div>
-        </div>
-    `;
-}
-
-// =========================================================================
-// === 6. FUNCIONES AUXILIARES (MODALES Y FORMULARIO) ===
-// =========================================================================
-
-function handleChecks(estado) {
-    document.getElementById('checkParcial').checked = (estado === 'parcial');
-    document.getElementById('checkCompleta').checked = (estado === 'completa');
-}
-
-// --- Lógica Específica de Carga ---
-
-function toggleLiberacionFields() {
-    const tipoLiberacion = document.getElementById('selectTipoLiberacion').value;
-    const fieldsMuro = document.getElementById('liberacionFieldsMuro');
-    const fieldsCancha = document.getElementById('liberacionFieldsCancha');
-    
-    const fieldsToToggle = [
-        { container: fieldsMuro, inputs: ['liberacionMuroId', 'liberacionMuroCapa'] },
-        { container: fieldsCancha, inputs: ['liberacionCanchaNumero', 'liberacionCanchaMaterial'] }
-    ];
-
-    fieldsToToggle.forEach(item => {
-        const isVisible = (tipoLiberacion === 'muro' && item.container === fieldsMuro) || 
-                          (tipoLiberacion === 'cancha' && item.container === fieldsCancha);
-
-        if (isVisible) {
-            item.container.classList.remove('hidden');
-            item.inputs.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.setAttribute('required', '');
+            // Generar tarjetas de reporte
+            registros.forEach(r => {
+                const estadoColor = r.estado === 'parcial' ? 'text-mining-warning' : 'text-mining-success';
+                const estadoBg = r.estado === 'parcial' ? 'bg-yellow-400/10' : 'bg-green-400/10';
+                
+                const html = `
+                    <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
+                        <div class="flex justify-between items-center border-b border-mining-700 pb-2 mb-2">
+                            <h3 class="text-lg font-bold text-white">${r.zona} - ${r.muro_id}</h3>
+                            <span class="text-xs font-semibold ${estadoColor} ${estadoBg} px-2 py-0.5 rounded-full uppercase">${r.estado}</span>
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-y-1 text-sm">
+                            <span class="text-slate-400">Capa:</span>
+                            <span class="text-white font-bold">${r.capa}</span>
+                            
+                            <span class="text-slate-400">Turno:</span>
+                            <span class="text-white">${r.turno}</span>
+                            
+                            <span class="text-slate-400">Fecha/Hora:</span>
+                            <span class="text-white">${r.fecha.toLocaleString()}</span>
+                            
+                            <span class="text-slate-400">Registrado por:</span>
+                            <span class="text-white truncate">${r.nombre_usuario}</span>
+                        </div>
+                    </div>
+                `;
+                dashboard.innerHTML += html;
             });
-        } else {
-            item.container.classList.add('hidden');
-            item.inputs.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.removeAttribute('required');
-            });
+            
+            // Ajustar el grid para que se vea bien
+            dashboard.classList.remove('grid-cols-1');
+            dashboard.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
         }
-    });
-}
-
-function toggleForm() {
-    const tipo = document.getElementById('selectTipo').value;
-    const form = document.getElementById('dataForm');
-    const fieldsMuro = document.getElementById('fieldsMuro');
-    const fieldsCancha = document.getElementById('fieldsCancha');
-    const fieldsLiberacion = document.getElementById('fieldsLiberacion'); 
-
-    form.classList.remove('hidden');
-    
-    if (!document.getElementById('recordIdToModify').value) {
-        document.getElementById('dataForm').reset();
-        document.getElementById('cargaTitle').innerText = 'Menú de Carga';
-        document.getElementById('modificationHint').classList.add('hidden');
-        document.getElementById('cancelModificationBtn').classList.add('hidden'); 
-    }
-
-    // Ocultar todos los campos específicos primero
-    fieldsMuro.classList.add('hidden');
-    fieldsCancha.classList.add('hidden');
-    fieldsLiberacion.classList.add('hidden'); 
-
-    // Remover 'required' de todos los campos condicionales
-    document.querySelectorAll('#fieldsMuro input, #fieldsCancha input, #fieldsLiberacion input, #fieldsLiberacion select').forEach(el => {
-        el.removeAttribute('required');
-    });
-    
-    // Lógica de visibilidad y 'required'
-    if (tipo === 'muro') {
-        fieldsMuro.classList.remove('hidden');
-        document.getElementById('muroZona').setAttribute('required', '');
-        document.getElementById('muroCapa').setAttribute('required', '');
-        document.getElementById('muroId').setAttribute('required', '');
-
-    } else if (tipo === 'cancha') {
-        fieldsCancha.classList.remove('hidden');
-        document.getElementById('canchaZona').setAttribute('required', '');
-        document.getElementById('canchaPileta').setAttribute('required', '');
-        document.getElementById('canchaNumero').setAttribute('required', '');
-
-    } else if (tipo === 'liberacion') { 
-        fieldsLiberacion.classList.remove('hidden');
-        document.getElementById('liberacionZona').setAttribute('required', '');
-        document.getElementById('liberacionPileta').setAttribute('required', '');
-        document.getElementById('selectTipoLiberacion').setAttribute('required', '');
-        toggleLiberacionFields();
-    }
-}
-
-async function mostrarModalEdicion(recordId, tipo, zona) {
-    const { data, error } = await supabaseClient.from(`${tipo}s_registros`).select('*').eq('id', recordId).single();
-    
-    if (error || !data) {
-        console.error("Error al obtener datos para edición:", error);
-        return showAlertModal(`Error al cargar datos para edición. ID: ${recordId}`);
-    }
-
-    // 1. Configurar la pestaña de carga
-    cambiarPestana('carga'); 
-    
-    // 2. Establecer IDs
-    document.getElementById('recordIdToModify').value = recordId;
-    document.getElementById('originalZona').value = zona;
-    
-    // 3. Mostrar elementos de edición
-    document.getElementById('cargaTitle').innerText = `Modificando Registro (${tipo.toUpperCase()})`;
-    document.getElementById('modificationHint').classList.remove('hidden');
-    document.getElementById('cancelModificationBtn').classList.remove('hidden');
-
-    // 4. Seleccionar tipo
-    document.getElementById('selectTipo').value = tipo;
-    toggleForm(); // Llama a toggleForm para mostrar los campos correctos
-    
-    // 5. Llenar campos comunes
-    document.getElementById('selectTurno').value = data.turno;
-    
-    // 6. Llenar campos específicos
-    if (tipo === 'muro') {
-        document.getElementById('muroZona').value = data.zona;
-        document.getElementById('muroId').value = data.muro_id;
-        document.getElementById('muroCapa').value = data.capa;
-        handleChecks(data.estado); 
-    } else if (tipo === 'cancha') {
-        document.getElementById('canchaZona').value = data.zona;
-        document.getElementById('canchaPileta').value = data.pileta;
-        document.getElementById('canchaNumero').value = data.numero;
-        document.getElementById('canchaMaterial').value = data.material;
-    }
-}
-
-function cancelarModificacion() {
-    document.getElementById('dataForm').reset();
-    document.getElementById('recordIdToModify').value = "";
-    document.getElementById('originalZona').value = "";
-    
-    document.getElementById('cancelModificationBtn').classList.add('hidden');
-    document.getElementById('modificationHint').classList.add('hidden');
-    
-    document.getElementById('cargaTitle').innerText = 'Menú de Carga';
-    
-    document.getElementById('fieldsMuro').classList.add('hidden');
-    document.getElementById('fieldsCancha').classList.add('hidden');
-    document.getElementById('fieldsLiberacion').classList.add('hidden');
-    document.getElementById('dataForm').classList.add('hidden');
-    document.getElementById('selectTipo').value = "";
-}
-
-// --- Funciones de Modales y Notificación ---
-
-function showAlertModal(message) {
-    document.getElementById('alertMessage').innerText = message;
-    document.getElementById('alertModal').classList.replace('hidden', 'flex');
-}
-
-function hideAlertModal() {
-    document.getElementById('alertModal').classList.replace('flex', 'hidden');
-}
-
-function mostrarToast(message = "Datos guardados correctamente", type = 'blue') {
-    const toast = document.getElementById('toast');
-    const icon = toast.querySelector('i');
-    const span = toast.querySelector('span');
-
-    toast.className = 'fixed bottom-5 right-5 text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3';
-
-    span.innerText = message;
-    
-    if (type === 'blue') {
-        toast.classList.add('bg-mining-800', 'border-l-4', 'border-mining-accent');
-        icon.className = 'fa-solid fa-circle-check text-mining-accent';
-    } else if (type === 'red') {
-        toast.classList.add('bg-red-800/80', 'border-l-4', 'border-red-500');
-        icon.className = 'fa-solid fa-trash-can text-red-500';
-    } else if (type === 'yellow') {
-         toast.classList.add('bg-yellow-800/80', 'border-l-4', 'border-yellow-500');
-        icon.className = 'fa-solid fa-pen-to-square text-yellow-500';
-    }
-
-    toast.classList.remove('translate-y-20', 'opacity-0');
-    setTimeout(() => {
-        toast.classList.add('translate-y-20', 'opacity-0');
-    }, 3000);
-}
-
-// --- Funciones de Filtro Comunes ---
-
-function generarBotonFiltro(zona, isActive, handlerFunction) {
-    const activeClass = 'bg-mining-accent text-white shadow-md';
-    const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
-
-    return `
-        <button onclick="${handlerFunction}('${zona}')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClass : inactiveClass}">
-            ${zona}
-        </button>
-    `;
-}
-
-function actualizarEstilosFiltro(containerId, zonaSeleccionada) {
-     const filterContainer = document.getElementById(containerId);
-     const activeClass = 'bg-mining-accent text-white shadow-md';
-     const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
-
-     filterContainer.querySelectorAll('button').forEach(btn => {
-        const zonaBtn = btn.innerText.trim();
-        
-        if (zonaBtn === zonaSeleccionada) {
-            btn.classList.remove(...inactiveClass.split(' '));
-            btn.classList.add(...activeClass.split(' '));
-        } else {
-            btn.classList.remove(...activeClass.split(' '));
-            btn.classList.add(...inactiveClass.split(' '));
-        }
-    });
-}
-
-// --- Limpiar DB (Admin) ---
-
-function mostrarModalLimpiarDB() {
-    if (currentUser.email !== 'admin@admin.com') { // CAMBIA ESTO POR UN EMAIL DE ADMIN REAL O LOGICA DE ROL
-        return showAlertModal("Acceso denegado. Solo los administradores pueden realizar esta acción.");
-    }
-    
-    document.getElementById('actionModalTitle').innerText = "ATENCIÓN: ELIMINAR BASE DE DATOS";
-    document.getElementById('actionModalMessage').innerHTML = "<p class='text-red-400'>Estás a punto de **ELIMINAR TODOS LOS REGISTROS** de Muros, Canchas y Liberaciones. Esta acción es irreversible.</p><p class='mt-3'>**¿Estás seguro de continuar?**</p>";
-    
-    const confirmBtn = document.getElementById('actionModalConfirmBtn');
-    confirmBtn.onclick = limpiarBaseDeDatos;
-    confirmBtn.classList.replace('bg-red-600', 'bg-red-800');
-    
-    document.getElementById('actionConfirmationModal').classList.replace('hidden', 'flex');
-}
-
-async function limpiarBaseDeDatos() {
-    document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden');
-
-    const { error: murosError } = await supabaseClient.from('muros_registros').delete().neq('id', '0'); 
-    const { error: canchasError } = await supabaseClient.from('canchas_registros').delete().neq('id', '0');
-    const { error: liberacionesError } = await supabaseClient.from('liberaciones_registros').delete().neq('id', '0');
-    
-    if (murosError || canchasError || liberacionesError) {
-        showAlertModal(`Error al limpiar la base de datos: ${murosError?.message || canchasError?.message || liberacionesError?.message}`);
-    } else {
-        mostrarToast("Base de datos de registros limpiada correctamente.", 'red');
-        setTimeout(() => cambiarPestana('visualizacion'), 500);
-    }
-}
     </script>
 </body>
 </html>
