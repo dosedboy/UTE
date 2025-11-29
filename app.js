@@ -621,6 +621,48 @@ function generarSvgMuro(claveMuro) {
 }
 
 /**
+ * Determina el estado visual real de una capa aplicando la lógica de jerarquía.
+ * (Si una capa superior está registrada, las inferiores se consideran 'completa').
+ */
+function obtenerEstadoVisualCapa(capaDbKey, capasEstado) {
+    const indiceCapaActual = CAPAS_ORDENADAS.indexOf(capaDbKey);
+    let indiceCapaParcialMasAlta = -1;
+    let indiceCapaCompletaMasAlta = -1;
+
+    // 1. Identificar el índice de la Capa registrada más alta
+    CAPAS_ORDENADAS.forEach((dbKey, index) => {
+        const estado = capasEstado[dbKey.toUpperCase()]?.estado;
+        if (estado === 'parcial') {
+            indiceCapaParcialMasAlta = Math.max(indiceCapaParcialMasAlta, index);
+        }
+        if (estado === 'completa') {
+            indiceCapaCompletaMasAlta = Math.max(indiceCapaCompletaMasAlta, index);
+        }
+    });
+
+    const indiceReferencia = Math.max(indiceCapaParcialMasAlta, indiceCapaCompletaMasAlta);
+    
+    // 2. Si la capa actual está por debajo del registro más alto
+    if (indiceCapaActual < indiceReferencia) {
+        return 'completa';
+    }
+    
+    // 3. Si la capa actual es la capa parcial más alta, respeta el estado 'parcial'
+    if (indiceCapaActual === indiceCapaParcialMasAlta && indiceCapaParcialMasAlta > indiceCapaCompletaMasAlta) {
+        return 'parcial';
+    }
+
+    // 4. Si la capa actual es el registro más alto (o igual), devuelve su estado registrado
+    if (indiceCapaActual === indiceReferencia) {
+         return capasEstado[capaDbKey.toUpperCase()]?.estado || 'sin datos';
+    }
+
+    // 5. Por defecto (capa superior sin registro)
+    return capasEstado[capaDbKey.toUpperCase()]?.estado || 'sin datos';
+}
+
+
+/**
  * Aplica color a las capas SVG, aplicando la regla de herencia y agregando el evento de click.
  */
 function aplicarColorMuro(claveMuro, capasEstado, murosDetalle) {
@@ -781,12 +823,22 @@ async function filtrarPorZonaMuros(zonaSeleccionada, updateFilterControls = true
                     
                     <div class="mt-4 border-t border-mining-700 pt-3">
                         <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros (por Capa):</p>
-                        ${Object.keys(dataMuro.capasEstado).sort(compareAlphanumeric).map(capa => {
-                            const r = dataMuro.capasEstado[capa];
+                        ${CAPAS_ORDENADAS.filter(capaDbKey => dataMuro.capasEstado[capaDbKey] || obtenerEstadoVisualCapa(capaDbKey, dataMuro.capasEstado) === 'completa')
+                           .sort(compareAlphanumeric).map(capaDbKey => {
+                            
+                            // 1. Determinar el estado visual real (aplicando la jerarquía)
+                            const estadoVisual = obtenerEstadoVisualCapa(capaDbKey, dataMuro.capasEstado);
+                            
+                            // 2. Elegir el estilo según el estado visual
+                            const colorClass = estadoVisual === 'parcial' 
+                                ? 'text-yellow-400' 
+                                : 'text-green-400';
+                            
+                            // 3. Mostrar el estado visual calculado
                             return `
                                 <div class="flex justify-between text-xs text-slate-300">
-                                    <span>Capa ${capa}:</span>
-                                    <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado}</span>
+                                    <span>Capa ${capaDbKey}:</span>
+                                    <span class="${colorClass} font-bold uppercase">${estadoVisual}</span>
                                 </div>
                             `;
                         }).join('')}
@@ -843,13 +895,19 @@ function actualizarEstilosFiltro(containerId, zonaSeleccionada) {
 }
 
 function compareAlphanumeric(a, b) {
-    // Usa el campo 'capa' para comparar (que contiene la clave del muro en las funciones de filtro de muros)
-    const aStr = a.capa || a; 
-    const bStr = b.capa || b; 
+    // Si los argumentos son strings, los convierte a objetos para la comparación.
+    const aStr = (typeof a === 'object' && a.capa) ? a.capa : a; 
+    const bStr = (typeof b === 'object' && b.capa) ? b.capa : b; 
     
+    // Si los argumentos son los nombres de las capas (e.g., 'BASAL', '1', '2'), usa el orden predefinido
+    if (CAPAS_ORDENADAS.includes(aStr) && CAPAS_ORDENADAS.includes(bStr)) {
+        return CAPAS_ORDENADAS.indexOf(aStr) - CAPAS_ORDENADAS.indexOf(bStr);
+    }
+
+    // Comparación alfanumérica estándar para otros casos (e.g., clave de muro)
     const regex = /(\d+)|(\D+)/g;
-    const partsA = aStr.match(regex) || [];
-    const partsB = bStr.match(regex) || [];
+    const partsA = (aStr.match(regex) || []).filter(p => p.trim() !== '');
+    const partsB = (bStr.match(regex) || []).filter(p => p.trim() !== '');
 
     for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
         const partA = partsA[i] || '';
