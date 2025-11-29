@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Civil Minero (Modo Local)</title>
+    <title>Control Civil Minero</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -13,12 +13,12 @@
                 extend: {
                     colors: {
                         mining: {
-                            900: '#0f172a', // Fondo muy oscuro
-                            800: '#1e293b', // Paneles
-                            700: '#334155', // Bordes
-                            accent: '#3b82f6', // Azul primario
-                            warning: '#eab308', // Amarillo
-                            success: '#22c59e'  // Verde
+                            900: '#0f172a', 
+                            800: '#1e293b', 
+                            700: '#334155', 
+                            accent: '#3b82f6', 
+                            warning: '#eab308', 
+                            success: '#22c59e'  
                         }
                     }
                 }
@@ -33,34 +33,50 @@
         .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Estilo base de las capas (gris/sin datos) */
+        /* --- ESTILOS SVG MUROS --- */
         .svg-capa {
-            fill: #334155; /* slate-700 para sin datos */
-            stroke: #0f172a; /* Borde oscuro para separación */
+            fill: #334155; 
+            stroke: #0f172a; 
             stroke-width: 1;
-            transition: fill 0.3s ease-in-out; /* Transición para el pintado */
+            transition: fill 0.3s ease-in-out; 
+            cursor: pointer;
         }
-
-        /* Colores de estado (controlados por JS) */
-        .color-parcial { fill: #eab308 !important; } /* Amarillo */
-        .color-completa { fill: #22c59e !important; } /* Verde */
+        .svg-capa:hover {
+            opacity: 0.8;
+        }
+        .color-parcial { fill: #eab308 !important; } 
+        .color-completa { fill: #22c59e !important; } 
         
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* 🔥 ESTILO: Etiqueta "NUEVO" */
+        .tag-nuevo {
+            background-color: #ef4444; /* Rojo 500 */
+            color: white;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.65rem; /* texto muy pequeño */
+            font-weight: bold;
+            line-height: 1;
+            margin-left: 8px;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+        }
     </style>
 </head>
 <body class="bg-mining-900 text-slate-200 min-h-screen flex flex-col">
 
-    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0">
+    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0 hidden">
         <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
             
             <div class="flex items-center gap-4">
                 <h1 class="text-xl font-bold text-white flex items-center gap-2">
                     <i class="fa-solid fa-helmet-safety text-mining-accent"></i> 
-                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| GESTIÓN DE OBRA (MODO LOCAL)</span>
+                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| Gestión de Obra</span>
                 </h1>
             </div>
             
@@ -87,16 +103,38 @@
 
     <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         
-        <section id="viewLogin" class="hidden flex flex-col items-center justify-center min-h-[70vh]">
-            <h2 class="text-3xl font-bold text-red-500 text-center">MODO LOCAL ACTIVO</h2>
-            <p class="text-lg text-slate-400 mt-2">No se requiere inicio de sesión. Acceso directo a Carga.</p>
+        <section id="viewLogin" class="fade-in flex flex-col items-center justify-center min-h-[70vh]">
+            <div class="max-w-sm mx-auto w-full bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-8 space-y-6">
+                <h2 class="text-3xl font-bold text-white text-center flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-user-lock text-mining-accent"></i> 
+                    Acceso al Sistema
+                </h2>
+                <p class="text-sm text-slate-400 text-center">Ingrese sus credenciales para acceder a la gestión de obra.</p>
+
+                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                    
+                    <div class="space-y-1">
+                        <label for="loginEmail" class="text-xs text-slate-400 font-bold uppercase">Correo Electrónico</label>
+                        <input type="email" id="loginEmail" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="su.correo@empresa.com">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="loginPassword" class="text-xs text-slate-400 font-bold uppercase">Contraseña</label>
+                        <input type="password" id="loginPassword" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="******">
+                    </div>
+
+                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2 mt-6">
+                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
+                    </button>
+                </form>
+            </div>
         </section>
 
         <section id="viewCarga" class="fade-in hidden">
             <div class="max-w-xl mx-auto bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-6 space-y-6">
                 
                 <h2 class="text-2xl font-bold text-white border-b border-mining-700 pb-3" id="cargaTitle">Menú de Carga</h2>
-                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos. El registro anterior se eliminará de su posición original.</p>
+                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos.</p>
                 
                 <div class="space-y-2">
                     <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Registro</label>
@@ -127,23 +165,24 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" id="recordIdToModify" value=""> 
+                    <input type="hidden" id="recordIdToModify" value="">
+                    <input type="hidden" id="originalZona" value="">
+                    <input type="hidden" id="originalKey" value="">
 
                     <div id="fieldsMuro" class="hidden space-y-5">
                         <div class="space-y-1">
                             <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2">
+                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2 / PC-3 / PL-5" required>
                         </div>
 
                         <div class="space-y-1">
                             <label class="text-xs text-slate-400 font-bold uppercase">Muro</label>
-                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A OESTE">
+                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A / M3AB / M45B" required>
                         </div>
 
                         <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Capa # (Basal, 1 a 6)</label>
-                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: 1, 3, BASAL, 6">
-                            <p class="text-xs text-slate-500 mt-1">**Nota:** La Capa 6 es el Coronamiento.</p>
+                            <label class="text-xs text-slate-400 font-bold uppercase">Capa</label>
+                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: BASAL / 1 / 2 / 6" required>
                         </div>
 
                         <div class="bg-mining-900 p-4 rounded border border-mining-700">
@@ -169,10 +208,32 @@
                     </div>
 
                     <div id="fieldsCancha" class="hidden space-y-5">
-                        <p class="text-sm text-slate-500">Los campos de Cancha se ignorarán en modo de prueba local.</p>
                         <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Zona (Ej: PC3)</label>
-                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC3, PC4">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
+                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC-3 / MLP-2 / PL-5" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Pileta</label>
+                            <input type="text" id="canchaPileta" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: A / B / C" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Cancha #</label>
+                            <input type="text" id="canchaNumero" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Número de cancha" required>
+                        </div>
+
+                        <div class="space-y-1">
+                            <label class="text-xs text-slate-400 font-bold uppercase">Material</label>
+                            <div class="relative">
+                                <select id="canchaMaterial" class="w-full bg-mining-900 border border-mining-700 text-white p-2.5 rounded focus:border-mining-accent outline-none appearance-none">
+                                    <option value="FINO">FINO</option>
+                                    <option value="MASIVO">MASIVO</option>
+                                </select>
+                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                                    <i class="fa-solid fa-chevron-down text-xs"></i>
+                                </div
+                            ></div>
                         </div>
                     </div>
 
@@ -180,35 +241,39 @@
                         <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
                     </button>
                     
+                    <button type="button" onclick="cancelarModificacion()" id="cancelModificationBtn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-all active:scale-95 flex justify-center items-center gap-2 mt-3 hidden">
+                        <i class="fa-solid fa-xmark"></i> Cancelar Modificación
+                    </button>
                     <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
-                        Borrar todos los datos de prueba
+                        Borrar todos los datos (Admin)
                     </button>
                 </form>
             </div>
         </section>
 
         <section id="viewVisualizacion" class="hidden fade-in">
+            
             <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-mining-700 pb-4">
                 <div>
-                    <h2 class="text-3xl font-light text-white">Visualización de Reporte</h2>
-                    <p class="text-sm text-slate-400 mt-1">Listado de todos los registros de **Muros** cargados.</p>
+                    <h2 class="text-3xl font-light text-white">Visualización de Obra</h2>
+                    <p class="text-sm text-slate-400 mt-1">Clasificación por Zonas y Tipos</p>
                 </div>
                 <div class="text-right mt-3 sm:mt-0">
                     <span id="totalRegistros" class="text-2xl font-bold text-mining-accent">0</span>
                     <p class="text-xs text-slate-500 uppercase tracking-wide">Registros</p>
                 </div>
             </header>
-            
-            <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
-                <p class="text-sm text-slate-500">Sin filtros activos en Modo Local.</p>
-            </div>
 
-            <div id="dashboardContainer" class="grid grid-cols-1 gap-6 pb-20">
-                <div class="text-center py-20 text-slate-600 col-span-full">
-                    <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros de muros cargados aún.</p>
+            <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+                </div>
+
+            <div id="dashboardContainer" class="grid grid-cols-1 gap-8 pb-20">
+                <div class="text-center py-20 text-slate-600">
+                    <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
+                    <p>No hay registros cargados aún.</p>
                 </div>
             </div>
+
         </section>
         
         <section id="viewVisualizacionMuros" class="hidden fade-in">
@@ -216,17 +281,13 @@
                 <h2 class="text-3xl font-light text-white flex items-center gap-2">
                     <i class="fa-solid fa-mountain text-mining-accent"></i> Perfil de Muros
                 </h2>
-                <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. **Datos de prueba locales.**</p>
+                <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. Se muestra el **último registro** por capa.</p>
             </header>
             
-            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                <div class="text-center py-20 text-slate-600 col-span-full">
-                    <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros de muros cargados aún.</p>
-                </div>
+            <div id="murosZoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
             </div>
-            
-            <div class="mt-8 p-4 bg-mining-800 rounded-lg border border-mining-700">
+
+            <div class="mb-6 p-4 bg-mining-800 rounded-lg border border-mining-700">
                 <h3 class="text-lg font-semibold text-white mb-2">Leyenda</h3>
                 <div class="flex flex-wrap gap-4 text-sm">
                     <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-success rounded-full"></span> Completa</span>
@@ -234,8 +295,16 @@
                     <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-700 rounded-full"></span> Sin Datos</span>
                 </div>
             </div>
+
+            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+                <div class="text-center py-20 text-slate-600 col-span-full">
+                    <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
+                    <p>No hay registros de muros cargados aún.</p>
+                </div>
+            </div>
             
         </section>
+
 
     </main>
 
@@ -265,44 +334,59 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
         // =========================================================================
-        // === 1. CONFIGURACIÓN INICIAL DE MODO LOCAL Y BASE DE DATOS MOCK ===
+        // === 1. CONFIGURACIÓN INICIAL DE SUPABASE (CLAVES INSERTADAS) ===
         // =========================================================================
         
-        // BASE DE DATOS DE PRUEBA LOCAL (MOCK)
-        let mockDatabase = {
-            muros_registros: JSON.parse(localStorage.getItem('muros_registros_local')) || [],
-            canchas_registros: JSON.parse(localStorage.getItem('canchas_registros_local')) || []
+        const SUPABASE_URL = 'https://hzmljjxtzbhfrdhtebgn.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bWxqanh0emJoZnJkaHRlYmduIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQxMjYwNjUsImV4cCI6MjA3OTcwMjA2NX0.iz20qmfAEoJCnRKZmOFDovET-W3JfY9Dr8t-MnSUf_k'; 
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        let currentUser = null; 
+        
+        let currentReportZoneFilter = 'TODOS'; 
+        let currentMurosZoneFilter = 'TODOS'; 
+
+        const CAPA_SVG_MAP = {
+            'BASAL': 'capa-basal', '1': 'capa-1', '2': 'capa-2', '3': 'capa-3', 
+            '4': 'capa-4', '5': 'capa-5', '6': 'capa-6', 
         };
         
-        function saveMockDb() {
-            localStorage.setItem('muros_registros_local', JSON.stringify(mockDatabase.muros_registros));
-            localStorage.setItem('canchas_registros_local', JSON.stringify(mockDatabase.canchas_registros));
+        // El orden de las capas de abajo hacia arriba (útil para la lógica jerárquica)
+        const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
+        
+        // =========================================================================
+        // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA Y CÁLCULO DE TIEMPO ===
+        // =========================================================================
+
+        /**
+         * Normaliza el nombre de la zona eliminando guiones, espacios y otros 
+         * caracteres no alfanuméricos, y usando mayúsculas.
+         * Ej: 'Mlp-2' -> 'MLP2'
+         */
+        function normalizarZona(zona) {
+            if (typeof zona !== 'string') return '';
+            // 1. Convertir a mayúsculas
+            let texto = zona.toUpperCase();
+            // 2. Eliminar todo lo que no sea una letra (A-Z) o un número (0-9)
+            return texto.replace(/[^A-Z0-9]/g, ''); 
+        }
+        
+        /**
+         * Verifica si la fecha de carga es menor a 24 horas.
+         */
+        function esRegistroNuevo(recordFecha) {
+            const now = new Date();
+            const ONE_DAY_MS = 86400000; 
+            const diff = now.getTime() - recordFecha.getTime();
+            
+            return diff <= ONE_DAY_MS;
         }
 
-        // Simulación de usuario logeado en modo local
-        const currentUser = { id: 'local-user', user_metadata: { nombre_completo: 'Usuario Local' }, email: 'local@test.com' };
-        
-        let currentZoneFilter = 'TODOS';
-        
-        // Mapeo de nombres de capa (en la base de datos) a IDs de elemento SVG
-        const CAPA_SVG_MAP = {
-            'BASAL': 'capa-basal',
-            '1': 'capa-1',
-            '2': 'capa-2',
-            '3': 'capa-3',
-            '4': 'capa-4',
-            '5': 'capa-5',
-            '6': 'capa-6', // Capa 6 es el Coronamiento
-        };
-        
-        // La lista de capas válidas para el formulario (se ha quitado CORONAMIENTO)
-        const CAPAS_VALIDAS_FORM = ['BASAL', '1', '2', '3', '4', '5', '6'];
-
-
         // =========================================================================
-        // === 2. MANEJO DE VISTAS (MODIFICADO PARA IGNORAR LOGIN) ===
+        // === 3. AUTENTICACIÓN Y MANEJO DE VISTAS (LÓGICA DE LOGIN REFORZADA) ===
         // =========================================================================
         
         function cambiarVista(vista) {
@@ -310,373 +394,515 @@
                 login: document.getElementById('viewLogin'),
                 carga: document.getElementById('viewCarga'),
                 visualizacion: document.getElementById('viewVisualizacion'),
-                visualizacionMuros: document.getElementById('viewVisualizacionMuros')
+                visualizacionMuros: document.getElementById('viewVisualizacionMuros') 
             };
-            
-            Object.values(views).forEach(v => v.classList.replace('flex', 'hidden'));
-            Object.values(views).forEach(v => v.classList.replace('block', 'hidden'));
+            const nav = document.getElementById('mainNav');
 
-            views[vista].classList.replace('hidden', vista === 'login' ? 'flex' : 'block');
+            // Ocultar todas las vistas
+            Object.values(views).forEach(v => {
+                v.classList.replace('flex', 'hidden');
+                v.classList.replace('block', 'hidden');
+            });
+            
+            if (vista === 'login') {
+                views.login.classList.replace('hidden', 'flex');
+                nav.classList.add('hidden'); // Asegurarse que se oculte la nav al ir al login
+            } else {
+                nav.classList.remove('hidden'); // Mostrar la nav solo si no es login
+                views[vista].classList.replace('hidden', 'block');
+            }
             
             if (vista === 'visualizacion') {
-                renderizarDatos();
+                renderizarDatosReporte(); 
             } else if (vista === 'visualizacionMuros') {
-                renderizarMuros(); 
+                 renderizarMuros(); 
             }
         }
         
         document.addEventListener('DOMContentLoaded', initializeApp);
 
-        function initializeApp() {
-            document.getElementById('userInfo').innerText = `| Sesión: ${currentUser.user_metadata.nombre_completo}`;
-            cambiarVista('carga'); 
-            cambiarPestana('carga'); 
+        async function initializeApp() {
+            // **PASO 1: Asegurar que el contenido está oculto al inicio.**
+            document.getElementById('mainNav').classList.add('hidden');
+            document.getElementById('viewCarga').classList.add('hidden');
+            document.getElementById('viewVisualizacion').classList.add('hidden');
+            document.getElementById('viewVisualizacionMuros').classList.add('hidden');
+            
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            currentUser = user; 
+            
+            if (!currentUser) {
+                // Si NO hay usuario, solo mostrar el Login.
+                document.getElementById('viewLogin').classList.replace('hidden', 'flex'); 
+                
+            } else {
+                // Si SÍ hay usuario, inicializar la sesión y mostrar el contenido.
+                const userMetadata = currentUser.user_metadata;
+                const userName = userMetadata.nombre_completo || currentUser.email; 
+
+                document.getElementById('userInfo').innerText = `| Sesión: ${userName}`;
+                
+                // Ocultar login
+                document.getElementById('viewLogin').classList.replace('flex', 'hidden');
+                
+                // Mostrar Navegación y la vista inicial (carga)
+                document.getElementById('mainNav').classList.remove('hidden');
+                cambiarPestana('carga'); 
+            }
         }
         
-        function handleLogin() { /* Ignorado */ }
-        function handleLogout() { showAlertModal("El 'Cerrar Sesión' está deshabilitado en Modo Local. Actualice la página para borrar datos de sesión."); }
-        
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                console.error("Login Error:", error);
+                showAlertModal(`Error al iniciar sesión: ${error.message}`);
+            } else {
+                currentUser = data.user;
+                document.getElementById('loginForm').reset();
+                initializeApp(); 
+            }
+        }
+
+        async function handleLogout() {
+            const { error } = await supabaseClient.auth.signOut();
+            
+            if (error) {
+                console.error("Logout Error:", error);
+                showAlertModal(`Error al cerrar sesión: ${error.message}`);
+            } else {
+                currentUser = null;
+                cambiarVista('login'); 
+            }
+        }
+
         function cambiarPestana(tab) {
-            const views = ['carga', 'visualizacion', 'visualizacionMuros'];
+            const views = ['carga', 'visualizacion', 'visualizacionMuros']; 
             const buttons = {
                 carga: document.getElementById('btnCarga'),
                 visualizacion: document.getElementById('btnVer'),
-                visualizacionMuros: document.getElementById('btnVerMuros')
+                visualizacionMuros: document.getElementById('btnVerMuros') 
             };
             
             views.forEach(view => {
-                if (view === tab) {
-                    cambiarVista(tab);
-                    buttons[view].className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
-                } else {
-                    buttons[view].className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+                const btn = buttons[view];
+                if (btn) {
+                    if (view === tab) {
+                        cambiarVista(tab);
+                        btn.className = "px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all";
+                    }
                 }
             });
         }
         
         // =========================================================================
-        // === 3. LÓGICA DE DATOS (MOCK CRUD) ===
+        // === 4. LÓGICA DE DATOS (SUPABASE CRUD) - NORMALIZACIÓN Y EDICIÓN ===
         // =========================================================================
-        
+
+        /**
+         * Lee los datos de Supabase.
+         * Devuelve: { reporteDetallado: { zona: { muros: {}, canchas: [], ultimaFecha: Date } }, perfilesMuros: { muro-id: { capasEstado: {} } } }
+         */
         async function obtenerDatos() {
-            await new Promise(resolve => setTimeout(resolve, 10)); 
+            if (!currentUser) return { reporteDetallado: {}, perfilesMuros: {} }; 
 
-            const murosRaw = mockDatabase.muros_registros;
-            const canchasRaw = mockDatabase.canchas_registros;
+            const selectQueryMuros = 'id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario'; 
+            const selectQueryCanchas = 'id, fecha, zona, pileta, numero, material, turno, nombre_usuario'; 
             
-            let datosDB = { muros: {}, canchas: {}, registrosMuros: [] };
-
-            // 1. Procesar Muros (para el Perfil SVG)
-            murosRaw.forEach(record => {
-                const zona = record.zona.trim().toUpperCase();
-                const muroId = record.muro_id.trim().toUpperCase();
-                const capa = record.capa.trim().toUpperCase();
-                
-                // ClaveMuro usa el formato completo "ZONA - MURO_ID"
-                const claveMuro = `${zona} - ${muroId}`;
-                
-                if (!datosDB.muros[claveMuro]) {
-                    datosDB.muros[claveMuro] = {
-                        registros: [],
-                        capasEstado: {}
-                    };
+            // **IMPORTANTE**: La consulta debe ordenar por fecha descendente
+            const { data: murosRaw, error: murosError } = await supabaseClient.from('muros_registros').select(selectQueryMuros).order('fecha', { ascending: false }); 
+            const { data: canchasRaw, error: canchasError } = await supabaseClient.from('canchas_registros').select(selectQueryCanchas).order('fecha', { ascending: false });
+            
+            if (murosError || canchasError) {
+                console.error("Error al obtener datos de Supabase:", murosError || canchasError);
+                return { reporteDetallado: {}, perfilesMuros: {} }; 
+            }
+            
+            let datosDB = {}; 
+            let perfilesMuros = {}; 
+            
+            // Función auxiliar para actualizar la última fecha de la zona
+            const actualizarUltimaFechaZona = (zona, fechaStr) => {
+                const fecha = new Date(fechaStr);
+                if (!datosDB[zona]) {
+                    datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: fecha };
+                } else if (!datosDB[zona].ultimaFecha || fecha > datosDB[zona].ultimaFecha) {
+                    datosDB[zona].ultimaFecha = fecha;
                 }
+            };
+
+
+            // 1. Procesar Muros (Reporte Detallado y Perfiles)
+            murosRaw.forEach(record => {
+                const zona = record.zona; 
+                const muroId = record.muro_id.toUpperCase();
+                const capa = record.capa.toUpperCase();
+                const recordFecha = new Date(record.fecha);
+                const claveMuro = `${zona} - ${muroId}`; 
                 
-                // Almacenar el registro histórico para la tarjeta de Perfil
-                datosDB.muros[claveMuro].registros.push({
-                    id: record.id,
-                    capa: capa,
-                    estado: record.estado,
-                    turno: record.turno, 
-                    nombreUsuario: record.nombre_usuario || 'LOCAL', 
-                    fecha: new Date(record.fecha)
+                actualizarUltimaFechaZona(zona, record.fecha); // Actualizar fecha de la zona
+
+                // A. Reporte Detallado
+                if (!datosDB[zona].muros[muroId]) datosDB[zona].muros[muroId] = [];
+
+                datosDB[zona].muros[muroId].push({
+                    id: record.id, capa: capa, estado: record.estado, turno: record.turno, 
+                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO', fecha: recordFecha.toLocaleString(), fechaRaw: recordFecha 
                 });
                 
-                // Lógica de MANTENER ESTADO (solo guardamos el registro más reciente por capa)
-                if (!datosDB.muros[claveMuro].capasEstado[capa] || datosDB.muros[claveMuro].capasEstado[capa].fecha < new Date(record.fecha)) {
-                    datosDB.muros[claveMuro].capasEstado[capa] = {
+                // B. Perfiles Muros (Lógica para determinar el último estado por capa)
+                if (!perfilesMuros[claveMuro]) {
+                    perfilesMuros[claveMuro] = {
+                        zona: zona, 
+                        ultimaFecha: recordFecha, 
+                        capasEstado: {} 
+                    };
+                } else if (recordFecha > perfilesMuros[claveMuro].ultimaFecha) {
+                    perfilesMuros[claveMuro].ultimaFecha = recordFecha; 
+                }
+                
+                // Como la consulta ya está ordenada por fecha descendente, el primer registro (más reciente) define el estado.
+                if (!perfilesMuros[claveMuro].capasEstado[capa]) {
+                    perfilesMuros[claveMuro].capasEstado[capa] = {
                         estado: record.estado,
-                        fecha: new Date(record.fecha)
+                        fecha: recordFecha
                     };
                 }
             });
-            
-            // 2. Registros Muros (para la sección de Reporte detallado)
-            datosDB.registrosMuros = murosRaw.map(record => ({
-                ...record,
-                fecha: new Date(record.fecha),
-                clave: `${record.zona}-${record.muro_id}-${record.capa}-${record.id}` // Clave única para el reporte
-            })).sort((a, b) => b.fecha.getTime() - a.fecha.getTime()); // Ordenar del más reciente al más antiguo
 
-            return datosDB;
-        }
+            // 2. Procesar Canchas (Reporte Detallado)
+            canchasRaw.forEach(record => {
+                const zona = record.zona; 
+                
+                actualizarUltimaFechaZona(zona, record.fecha); // Actualizar fecha de la zona
 
-        function validarCamposMuro() {
-            const zona = document.getElementById('muroZona').value.trim();
-            const muroId = document.getElementById('muroId').value.trim();
-            const capa = document.getElementById('muroCapa').value.trim().toUpperCase();
-            const esParcial = document.getElementById('checkParcial').checked;
-            const esCompleta = document.getElementById('checkCompleta').checked;
+                if (!datosDB[zona]) datosDB[zona] = { muros: {}, canchas: [], ultimaFecha: new Date(record.fecha) };
+                if (!datosDB[zona].canchas) datosDB[zona].canchas = [];
+
+                datosDB[zona].canchas.push({
+                    id: record.id, pileta: record.pileta.toUpperCase(), numero: record.numero.toUpperCase(),
+                    material: record.material, turno: record.turno, 
+                    nombreUsuario: record.nombre_usuario || 'DESCONOCIDO',
+                    fecha: new Date(record.fecha).toLocaleString(), fechaRaw: new Date(record.fecha)
+                });
+            });
             
-            
-            if (!zona || !muroId || !capa) {
-                showAlertModal("Debe completar los campos Zona, Muro y Capa.");
-                return false;
-            }
-            if (!CAPAS_VALIDAS_FORM.includes(capa)) {
-                showAlertModal(`Capa inválida. Use: ${CAPAS_VALIDAS_FORM.join(', ')}.`);
-                return false;
-            }
-            if (!esParcial && !esCompleta) {
-                showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa).");
-                return false;
-            }
-            return true;
+            return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; 
         }
 
         async function guardarDatos(e) {
             e.preventDefault();
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
 
             const tipo = document.getElementById('selectTipo').value;
+            const recordIdToModify = document.getElementById('recordIdToModify').value;
             const turno = document.getElementById('selectTurno').value.trim().toUpperCase(); 
-            const userName = currentUser.user_metadata.nombre_completo;
+
+            const userMetadata = currentUser.user_metadata;
+            const userName = userMetadata.nombre_completo || currentUser.email;
+            
+            let tabla = '';
+            let objetoRegistro = {};
+            let isUpdate = !!recordIdToModify;
             
             if (tipo === 'muro') {
-                if (!validarCamposMuro()) return; 
+                tabla = 'muros_registros';
+                
+                // *** APLICACIÓN DE NORMALIZACIÓN DE ZONA ***
+                const zonaRaw = document.getElementById('muroZona').value.trim();
+                const zona = normalizarZona(zonaRaw); // Normaliza: MLP-2 -> MLP2
 
-                const zona = document.getElementById('muroZona').value.trim().toUpperCase();
                 const muroId = document.getElementById('muroId').value.trim().toUpperCase();
                 const capa = document.getElementById('muroCapa').value.trim().toUpperCase(); 
                 const esParcial = document.getElementById('checkParcial').checked;
+                const esCompleta = document.getElementById('checkCompleta').checked;
 
-                const objetoRegistro = {
-                    id: Date.now(),
-                    zona: zona,
+                if (!esParcial && !esCompleta) {
+                    return showAlertModal("Debe seleccionar el estado de la capa (Parcial o Completa) para guardar el registro.");
+                }
+
+                objetoRegistro = {
+                    zona: zona, // Guarda la zona normalizada
                     muro_id: muroId,
                     capa: capa,
                     estado: esParcial ? 'parcial' : 'completa',
                     turno: turno, 
                     user_id: currentUser.id,
-                    nombre_usuario: userName,
-                    fecha: new Date().toISOString()
+                    nombre_usuario: userName 
                 };
+
+            } else { // tipo === 'cancha'
+                tabla = 'canchas_registros';
                 
-                mockDatabase.muros_registros.push(objetoRegistro);
+                // *** APLICACIÓN DE NORMALIZACIÓN DE ZONA ***
+                const zonaRaw = document.getElementById('canchaZona').value.trim();
+                const zona = normalizarZona(zonaRaw); // Normaliza: PC-3 -> PC3
 
-            } else if (tipo === 'cancha') {
-                // ... (Lógica de cancha omitida/simulada)
-                const objetoRegistro = { id: Date.now(), fecha: new Date().toISOString() };
-                mockDatabase.canchas_registros.push(objetoRegistro);
+                const pileta = document.getElementById('canchaPileta').value.trim().toUpperCase();
+                const cancha = document.getElementById('canchaNumero').value.trim().toUpperCase();
+                const material = document.getElementById('canchaMaterial').value;
+                
+                objetoRegistro = {
+                    zona: zona, // Guarda la zona normalizada
+                    pileta: pileta,
+                    numero: cancha,
+                    material: material,
+                    turno: turno, 
+                    user_id: currentUser.id,
+                    nombre_usuario: userName 
+                };
+            }
+            
+            let error = null;
+            if (isUpdate) {
+                const result = await supabaseClient
+                    .from(tabla)
+                    .update(objetoRegistro)
+                    .eq('id', recordIdToModify);
+                error = result.error;
             } else {
-                return showAlertModal("Debe seleccionar un Tipo de Registro.");
+                const result = await supabaseClient
+                    .from(tabla)
+                    .insert([objetoRegistro]);
+                error = result.error;
             }
-            
-            saveMockDb();
 
-            mostrarToast("Datos guardados (Mock)", 'blue');
-            
-            resetCargaForm();
-            
-            // Re-renderizar la vista actual
-            const currentView = document.querySelector('section:not(.hidden)').id.replace('view', '');
-            if (currentView === 'visualizacion') {
-                renderizarDatos();
-            } else if (currentView === 'visualizacionMuros') {
-                 renderizarMuros();
+            if (error) {
+                console.error("Error al guardar/actualizar en Supabase:", error);
+                showAlertModal(`Error al guardar: ${error.message}`);
+                return;
             }
-        }
-        
-        function mostrarModalLimpiarDB() {
-            showActionModal(
-                "Borrar Datos de Prueba Local",
-                "¿Está seguro de que desea **borrar todos los registros de muros** guardados localmente? Esta acción no se puede deshacer.",
-                () => {
-                    mockDatabase.muros_registros = [];
-                    mockDatabase.canchas_registros = [];
-                    saveMockDb();
-                    mostrarToast("Datos de prueba locales eliminados.", 'red');
-                    
-                    const currentView = document.querySelector('section:not(.hidden)').id.replace('view', '');
-                    if (currentView === 'visualizacion') {
-                        renderizarDatos();
-                    } else if (currentView === 'visualizacionMuros') {
-                         renderizarMuros();
-                    }
-                    document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden');
+
+            mostrarToast(isUpdate ? "Registro modificado correctamente." : "Datos guardados correctamente", isUpdate ? 'yellow' : 'blue');
+            
+            // 🔥 MODIFICACIÓN JS: Llamar a cancelarModificacion después de guardar 🔥
+            cancelarModificacion();
+            
+            // Recargar la vista activa para ver el cambio de orden de la tarjeta
+            const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+            if (activeTab) {
+                const tabName = activeTab.id.replace('btn', '').toLowerCase();
+                // Si estamos en la pestaña de carga, recargamos la visualización detallada por defecto.
+                if (tabName === 'carga') { 
+                    cambiarPestana('visualizacion');
+                } else {
+                    cambiarPestana(tabName);
                 }
-            );
-        }
-        
-        function showActionModal(title, message, onConfirm) {
-            const modal = document.getElementById('actionConfirmationModal');
-            document.getElementById('actionModalTitle').innerText = title;
-            document.getElementById('actionModalMessage').innerHTML = message;
-            
-            const confirmBtn = document.getElementById('actionModalConfirmBtn');
-            confirmBtn.onclick = onConfirm; 
-            
-            modal.classList.replace('hidden', 'flex');
-        }
-
-        function resetCargaForm() {
-            document.getElementById('dataForm').reset();
-            document.getElementById('recordIdToModify').value = "";
-            document.getElementById('selectTipo').value = "";
-            document.getElementById('dataForm').classList.add('hidden');
-            document.getElementById('fieldsMuro').classList.add('hidden');
-            document.getElementById('fieldsCancha').classList.add('hidden');
-            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
-            document.getElementById('modificationHint').classList.add('hidden');
-            
-            document.getElementById('checkParcial').checked = false;
-            document.getElementById('checkCompleta').checked = false;
-        }
-        
-        function handleChecks(type) {
-            if (type === 'parcial') {
-                document.getElementById('checkCompleta').checked = false;
-            } else if (type === 'completa') {
-                document.getElementById('checkParcial').checked = false;
             }
         }
+        
+        async function eliminarRegistroMuro(zona, muroId, recordId, shouldRerender = true) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+            
+            const { error } = await supabaseClient
+                .from('muros_registros')
+                .delete()
+                .eq('id', recordId); 
+            
+            if (error) {
+                console.error("Error al eliminar muro:", error);
+                return showAlertModal(`Error al eliminar muro: ${error.message}`);
+            }
 
-        function toggleForm() {
-            const tipo = document.getElementById('selectTipo').value;
-            const form = document.getElementById('dataForm');
-            const fieldsMuro = document.getElementById('fieldsMuro');
-            const fieldsCancha = document.getElementById('fieldsCancha');
+            if (shouldRerender) {
+                const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+                const tabName = activeTab.id.replace('btn', '').toLowerCase();
+                cambiarPestana(tabName); 
+                mostrarToast("Registro de muro eliminado correctamente.", 'red');
+            }
+        }
+        
+        async function eliminarRegistroCancha(zona, recordId) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para eliminar datos.");
+            
+            const { error } = await supabaseClient
+                .from('canchas_registros')
+                .delete()
+                .eq('id', recordId); 
+            
+            if (error) {
+                console.error("Error al eliminar cancha:", error);
+                return showAlertModal(`Error al eliminar cancha: ${error.message}`);
+            }
 
-            if (tipo) {
-                form.classList.remove('hidden');
-                form.classList.add('fade-in');
+            const activeTab = document.querySelector('.bg-mining-900 .bg-mining-accent');
+            const tabName = activeTab.id.replace('btn', '').toLowerCase();
+            cambiarPestana(tabName); 
+            mostrarToast("Registro de cancha eliminado correctamente.", 'red');
+        }
+
+        // --- Funciones de RENDERIZADO de Reporte Detallado ---
+
+        async function renderizarDatosReporte() {
+            const { reporteDetallado: datosDB } = await obtenerDatos(); 
+            const zonas = Object.keys(datosDB).sort(); // Ordenar alfabéticamente para filtros
+
+            let totalCount = 0;
+            zonas.forEach(zona => {
+                const dataZona = datosDB[zona];
+                if(dataZona.canchas) totalCount += dataZona.canchas.length;
+                if(dataZona.muros) {
+                    Object.values(dataZona.muros).forEach(arr => totalCount += arr.length);
+                }
+            });
+            document.getElementById('totalRegistros').innerText = totalCount;
+
+            if (zonas.length === 0) {
+                document.getElementById('zoneFilterContainer').innerHTML = ''; 
+                document.getElementById('dashboardContainer').innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-1">
+                        <i class="fa-solid fa-layer-group text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros cargados aún.</p>
+                        <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
+                    </div>`;
+                return;
+            }
+
+            renderizarFiltrosReporte(zonas);
+            
+            if (!zonas.includes(currentReportZoneFilter) && currentReportZoneFilter !== 'TODOS') {
+                currentReportZoneFilter = 'TODOS'; 
+            }
+            
+            filtrarPorZonaReporte(currentReportZoneFilter, false, datosDB); 
+        }
+
+        function renderizarFiltrosReporte(zonas) {
+            const filterContainer = document.getElementById('zoneFilterContainer');
+            let buttonsHtml = '';
+
+            buttonsHtml += generarBotonFiltro('TODOS', currentReportZoneFilter === 'TODOS', 'filtrarPorZonaReporte');
+
+            zonas.forEach(zona => {
+                buttonsHtml += generarBotonFiltro(zona, currentReportZoneFilter === zona, 'filtrarPorZonaReporte');
+            });
+
+            filterContainer.innerHTML = buttonsHtml;
+        }
+        
+        async function filtrarPorZonaReporte(zonaSeleccionada, updateFilterControls = true, datosDB = null) {
+            currentReportZoneFilter = zonaSeleccionada;
+            
+            if (!datosDB) datosDB = (await obtenerDatos()).reporteDetallado; 
+            
+            renderizarContenidoReporte(zonaSeleccionada, datosDB);
+            
+            if (updateFilterControls) {
+                actualizarEstilosFiltro('zoneFilterContainer', zonaSeleccionada);
+            }
+        }
+        
+        /**
+         * Renderiza el contenido del dashboard, con ordenamiento por fecha de última carga.
+         */
+        function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
+            const container = document.getElementById('dashboardContainer');
+            
+            let zonas = Object.keys(datosDB);
+
+            if (zonas.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-slate-500 italic">No hay registros cargados aún.</div>`;
+                return;
+            }
+            
+            // 1. FILTRADO (si no es 'TODOS')
+            let zonasAProcesar = zonas;
+            if (zonaSeleccionada !== 'TODOS') {
+                zonasAProcesar = zonas.filter(zona => zona === zonaSeleccionada);
+            }
+            
+            if (zonasAProcesar.length === 0) {
+                container.innerHTML = `<p class="text-center py-10 text-slate-500 italic">No hay registros para la zona seleccionada (${zonaSeleccionada}).</p>`;
+                return;
+            }
+
+            // 2. ORDENAMIENTO DE LAS TARJETAS (solo si el filtro es 'TODOS')
+            if (zonaSeleccionada === 'TODOS') {
+                zonasAProcesar.sort((zonaA, zonaB) => {
+                    const fechaA = datosDB[zonaA].ultimaFecha || new Date(0);
+                    const fechaB = datosDB[zonaB].ultimaFecha || new Date(0);
+                    
+                    // Orden descendente (fecha más nueva primero)
+                    return fechaB - fechaA; 
+                });
             } else {
-                form.classList.add('hidden');
+                 // Si se selecciona una zona específica, la ordenación no importa, solo se muestra esa.
             }
 
-            fieldsMuro.classList.add('hidden');
-            fieldsCancha.classList.add('hidden');
-            
-            Array.from(fieldsMuro.querySelectorAll('input')).forEach(input => input.removeAttribute('required'));
-            Array.from(fieldsCancha.querySelectorAll('input')).forEach(input => input.removeAttribute('required'));
-
-            if (tipo === 'muro') {
-                fieldsMuro.classList.remove('hidden');
-                document.getElementById('muroZona').setAttribute('required', '');
-                document.getElementById('muroId').setAttribute('required', '');
-                document.getElementById('muroCapa').setAttribute('required', '');
-
-            } else if (tipo === 'cancha') {
-                fieldsCancha.classList.remove('hidden');
-                document.getElementById('canchaZona').setAttribute('required', '');
-                document.getElementById('canchaPileta').setAttribute('required', '');
-                document.getElementById('canchaNumero').setAttribute('required', '');
-            }
-        }
-
-        function mostrarToast(message, type = 'blue') {
-            const toast = document.getElementById('toast');
-            toast.querySelector('span').innerText = message;
-            
-            let borderColor = '#3b82f6';
-            let iconClass = 'fa-solid fa-circle-check';
-            
-            if (type === 'yellow') {
-                borderColor = '#eab308';
-                iconClass = 'fa-solid fa-circle-exclamation';
-            } else if (type === 'red') {
-                borderColor = '#ef4444';
-                iconClass = 'fa-solid fa-circle-xmark';
-            }
-
-            toast.style.borderLeftColor = borderColor;
-            toast.querySelector('i').className = `${iconClass} text-[${borderColor}]`;
-
-
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            // 3. RENDERIZADO
+            container.innerHTML = ''; 
+            zonasAProcesar.forEach(zona => {
+                const dataZona = datosDB[zona];
+                if (dataZona) {
+                    const cardHtml = generarTarjetaZona(zona, dataZona);
+                    container.innerHTML += cardHtml; 
+                }
+            });
         }
         
-        function showAlertModal(message) {
-            document.getElementById('alertMessage').innerText = message;
-            document.getElementById('alertModal').classList.replace('hidden', 'flex');
-        }
+        // --- Funciones de RENDERIZADO de Muros (Perfil) ---
 
-        function hideAlertModal() {
-            document.getElementById('alertModal').classList.replace('flex', 'hidden');
-        }
-
-        // =========================================================================
-        // === 4. VISUALIZACIÓN DE PERFIL DE MUROS (SVG CORREGIDO) ===
-        // =========================================================================
-        
+        /**
+         * Genera el SVG con la forma de tronco de pirámide invertida (muro).
+         */
         function generarSvgMuro(claveMuro) {
-            // Constantes
             const NUM_CAPAS = 7;
             const width = 200;
             const height = 240;
-            const topWidth = 50; // Ancho del Coronamiento (Capa 6, estrecho)
-            const bottomWidth = 200; // Ancho de la Basal (ancho)
+            const topWidth = 50; 
+            const bottomWidth = 200; 
             
-            // Ajustar la altura total para dejar espacio para el título y la línea divisoria
-            const titleHeight = 25; // Altura reservada para el título y la línea
+            const titleHeight = 25; 
             const drawableHeight = height - titleHeight;
             const capaHeight = drawableHeight / NUM_CAPAS;
             
             const capasPuntos = [];
             
             for (let i = 0; i < NUM_CAPAS; i++) {
-                // i = 0 (Coronamiento/Capa 6) ... i = 6 (Basal)
-                
-                // Alturas Y (comienzan después del título: titleHeight)
                 const y_top = titleHeight + i * capaHeight;
                 const y_bottom = titleHeight + (i + 1) * capaHeight;
                 
-                // Cálculo de ancho: El factor de ancho es proporcional a la distancia desde el tope (i)
                 const factor_top = i / NUM_CAPAS; 
                 const factor_bottom = (i + 1) / NUM_CAPAS;
                 
-                // Cálculo de ancho: Anchura linealmente interpolada entre topWidth y bottomWidth
                 const figura_ancho_top = topWidth + (bottomWidth - topWidth) * factor_top;
                 const figura_ancho_bottom = topWidth + (bottomWidth - topWidth) * factor_bottom;
 
-                // Lados X para la capa (centrados)
                 const x1_top = (width - figura_ancho_top) / 2;
                 const x2_top = x1_top + figura_ancho_top;
                 
                 const x1_bottom = (width - figura_ancho_bottom) / 2;
                 const x2_bottom = x1_bottom + figura_ancho_bottom;
                 
-                // Dibuja el polígono de la capa: 
-                // (x1_bottom, y_bottom) -> (x2_bottom, y_bottom) -> (x2_top, y_top) -> (x1_top, y_top) -> Cierre
                 capasPuntos.push(`M ${x1_bottom} ${y_bottom} L ${x2_bottom} ${y_bottom} L ${x2_top} ${y_top} L ${x1_top} ${y_top} Z`);
             }
 
-            // Mapeo de nombres
             const NOMBRES_CAPAS_SVG = [
-                { id: 'capa-6', label: '6', dbKey: '6' },         // i = 0 (Arriba, estrecho)
-                { id: 'capa-5', label: '5', dbKey: '5' },         // i = 1
-                { id: 'capa-4', label: '4', dbKey: '4' },         // i = 2
-                { id: 'capa-3', label: '3', dbKey: '3' },         // i = 3
-                { id: 'capa-2', label: '2', dbKey: '2' },         // i = 4
-                { id: 'capa-1', label: '1', dbKey: '1' },         // i = 5
-                { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' }, // i = 6 (Abajo, ancho)
+                { id: 'capa-6', label: '6', dbKey: '6' },         
+                { id: 'capa-5', label: '5', dbKey: '5' },         
+                { id: 'capa-4', label: '4', dbKey: '4' },         
+                { id: 'capa-3', label: '3', dbKey: '3' },         
+                { id: 'capa-2', label: '2', dbKey: '2' },         
+                { id: 'capa-1', label: '1', dbKey: '1' },         
+                { id: 'capa-basal', label: 'Basal', dbKey: 'BASAL' },
             ];
 
-            // Reemplazar espacios y guiones para crear un ID de elemento seguro para el DOM
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+            // Generar un ID limpio y consistente.
+            const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_');
 
 
             let svgContent = `<svg viewBox="0 0 ${width} ${height}" class="w-full" style="max-width: ${width}px; margin: 0 auto; display: block;">`;
             
-            // 1. Título del Muro (Parte superior izquierda)
+            // Título CENTRADO (x="width / 2")
             svgContent += `
-                <text x="5" y="15" 
-                    text-anchor="start" 
+                <text x="${width / 2}" y="15" 
+                    text-anchor="middle" 
                     font-size="12" 
                     font-weight="bold"
                     fill="#e2e8f0" 
@@ -685,16 +911,14 @@
                 </text>
             `;
             
-            // 2. Línea divisoria (antes del gráfico de perfil)
-            svgContent += `
-                <rect x="0" y="${titleHeight - 5}" width="${width}" height="1" fill="#475569"/>
-            `;
+            // Separador
+            svgContent += `<rect x="0" y="${titleHeight - 5}" width="${width}" height="1" fill="#475569"/>`;
 
-            // 3. Dibujar las Capas (i=0 es la de arriba)
+            // Renderizar las capas PATH
             NOMBRES_CAPAS_SVG.forEach((capaInfo, i) => {
                 svgContent += `
                     <path 
-                        id="${safeClaveMuro}-${capaInfo.id.replace(/\s/g, '_')}" 
+                        id="${safeClaveMuro}-${capaInfo.id}" 
                         d="${capasPuntos[i]}" 
                         class="svg-capa"
                         data-capa-db="${capaInfo.dbKey}"
@@ -702,16 +926,14 @@
                 `;
             });
             
-            // 4. Añadir las Etiquetas de Capa (Centradas en la capa)
+            // Renderizar las etiquetas de capa (Basal, 1, 2, etc.) en el centro
             for (let i = 0; i < NUM_CAPAS; i++) {
                 const yCenter = titleHeight + (i + 0.5) * capaHeight; 
                 
-                // Cálculo de ancho en el centro
                 const factor_center = (i + 0.5) / NUM_CAPAS;
                 const figura_ancho_center = topWidth + (bottomWidth - topWidth) * factor_center;
                 const xCenter = (width - figura_ancho_center) / 2 + (figura_ancho_center / 2);
 
-                // Obtener etiqueta corregida
                 let label = NOMBRES_CAPAS_SVG[i].label;
                 
                 svgContent += `
@@ -729,128 +951,675 @@
             return svgContent;
         }
 
-        async function renderizarMuros() {
-            const datosDB = await obtenerDatos(); 
-            const muros = datosDB.muros || {};
-            const dashboard = document.getElementById('murosDashboard');
-            
-            dashboard.innerHTML = '';
-            const clavesMuros = Object.keys(muros).sort();
-            
-            if (clavesMuros.length === 0) {
-                dashboard.innerHTML = `
-                    <div class="text-center py-20 text-slate-600 col-span-full">
-                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                        <p>No hay registros de muros cargados aún.</p>
-                    </div>`;
-                return;
-            }
-
-            clavesMuros.forEach(claveMuro => {
-                const dataMuro = muros[claveMuro];
-                
-                let html = `
-                    <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
-                        <div class="svg-container relative">
-                            ${generarSvgMuro(claveMuro)}
-                        </div>
-                        
-                        <div class="mt-4 border-t border-mining-700 pt-3">
-                            <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros:</p>
-                            ${dataMuro.registros.sort((a, b) => b.fecha.getTime() - a.fecha.getTime()).slice(0, 3).map(r => `
-                                <div class="flex justify-between text-xs text-slate-300">
-                                    <span>Capa ${r.capa} (${r.capa === '6' ? 'Coronamiento' : r.capa === 'BASAL' ? 'Basal' : 'Interm.'}):</span>
-                                    <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado} (${r.turno})</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-                dashboard.innerHTML += html;
-                
-                aplicarColorMuro(claveMuro, dataMuro.capasEstado);
-            });
-        }
-
+        /**
+         * Aplica color a las capas SVG, aplicando la regla de herencia.
+         */
         function aplicarColorMuro(claveMuro, capasEstado) {
-            // CRUCIAL: Convertir la claveMuro (que tiene espacios) a un ID seguro para buscar en el DOM
-            const safeClaveMuro = claveMuro.replace(/\s/g, '_').replace(/-/g, '__');
+            const safeClaveMuro = claveMuro.replace(/[^A-Z0-9]/g, '_'); 
+            
+            let indiceCapaParcialMasAlta = -1;
+            let indiceCapaCompletaMasAlta = -1;
 
-            // Iterar sobre el mapeo de Capa DB Key -> SVG ID y pintar
-            Object.keys(CAPA_SVG_MAP).forEach(dbKey => {
+            // 1. Identificar el índice de la Capa 'PARCIAL' y 'COMPLETA' más alta.
+            CAPAS_ORDENADAS.forEach((dbKey, index) => {
+                const estado = capasEstado[dbKey.toUpperCase()]?.estado;
+                if (estado === 'parcial') {
+                    indiceCapaParcialMasAlta = Math.max(indiceCapaParcialMasAlta, index);
+                }
+                if (estado === 'completa') {
+                    indiceCapaCompletaMasAlta = Math.max(indiceCapaCompletaMasAlta, index);
+                }
+            });
+            
+            // La Capa de Referencia es el índice de registro más alto, sea parcial o completa.
+            const indiceReferencia = Math.max(indiceCapaParcialMasAlta, indiceCapaCompletaMasAlta);
+
+            // 2. Recorrer todas las capas en el orden (Basal a 6)
+            CAPAS_ORDENADAS.forEach((dbKey, index) => {
                 const svgId = CAPA_SVG_MAP[dbKey];
-                
-                // Construir el ID completo del path SVG
                 const elementId = `${safeClaveMuro}-${svgId}`;
                 const capaElement = document.getElementById(elementId);
                 
                 if (capaElement) {
                     capaElement.classList.remove('color-parcial', 'color-completa');
+                    
+                    let estadoVisual = capasEstado[dbKey.toUpperCase()]?.estado; // Estado registrado (puede ser undefined, parcial, o completa)
 
-                    const estado = capasEstado[dbKey.toUpperCase()]?.estado;
-                    if (estado === 'parcial') {
+                    // 3. Aplicar Lógica de Herencia/Jerarquía
+                    
+                    // Si la capa actual (index) está estrictamente por debajo del registro más alto (indiceReferencia), 
+                    // se muestra como COMPLETA (verde).
+                    if (index < indiceReferencia) {
+                        estadoVisual = 'completa';
+                    }
+                    
+                    // Excepción: Si estamos en la capa más alta que está 'parcial', 
+                    // debe mantener su color amarillo, a menos que haya una capa 'completa' aún más alta.
+                    if (index === indiceCapaParcialMasAlta && indiceCapaParcialMasAlta > indiceCapaCompletaMasAlta) {
+                        estadoVisual = 'parcial';
+                    }
+                    
+                    // 4. Aplicar el color visual
+                    if (estadoVisual === 'parcial') {
                         capaElement.classList.add('color-parcial');
-                    } else if (estado === 'completa') {
+                    } else if (estadoVisual === 'completa') {
                         capaElement.classList.add('color-completa');
                     }
+                    // Si estadoVisual es undefined (sin registro) o si la capa está por encima de indiceReferencia, 
+                    // se queda con el color base (gris).
                 }
             });
         }
         
-        // =========================================================================
-        // === 5. FUNCIONES DE REPORTE DETALLADO (viewVisualizacion) ===
-        // =========================================================================
-        
-        async function renderizarDatos() {
-            const datosDB = await obtenerDatos(); 
-            const registros = datosDB.registrosMuros;
-            const dashboard = document.getElementById('dashboardContainer');
+        /**
+         * Renderiza la vista de Perfil de Muros (SVG) y sus filtros.
+         */
+        async function renderizarMuros() {
+            const { perfilesMuros: muros } = await obtenerDatos(); 
+            const dashboard = document.getElementById('murosDashboard');
             
-            dashboard.innerHTML = '';
-            document.getElementById('totalRegistros').innerText = registros.length;
-
-            if (registros.length === 0) {
+            // Obtener todas las zonas únicas de los muros (ya están normalizadas)
+            const zonasUnicas = [...new Set(Object.values(muros).map(m => m.zona))].sort();
+            
+            if (Object.keys(muros).length === 0) {
                 dashboard.innerHTML = `
                     <div class="text-center py-20 text-slate-600 col-span-full">
-                        <i class="fa-solid fa-file-lines text-6xl mb-4 opacity-20"></i>
+                        <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
                         <p>No hay registros de muros cargados aún.</p>
                     </div>`;
+                document.getElementById('murosZoneFilterContainer').innerHTML = '';
                 return;
             }
-
-            // Generar tarjetas de reporte
-            registros.forEach(r => {
-                const estadoColor = r.estado === 'parcial' ? 'text-mining-warning' : 'text-mining-success';
-                const estadoBg = r.estado === 'parcial' ? 'bg-yellow-400/10' : 'bg-green-400/10';
-                
-                const html = `
-                    <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
-                        <div class="flex justify-between items-center border-b border-mining-700 pb-2 mb-2">
-                            <h3 class="text-lg font-bold text-white">${r.zona} - ${r.muro_id}</h3>
-                            <span class="text-xs font-semibold ${estadoColor} ${estadoBg} px-2 py-0.5 rounded-full uppercase">${r.estado}</span>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-y-1 text-sm">
-                            <span class="text-slate-400">Capa:</span>
-                            <span class="text-white font-bold">${r.capa}</span>
-                            
-                            <span class="text-slate-400">Turno:</span>
-                            <span class="text-white">${r.turno}</span>
-                            
-                            <span class="text-slate-400">Fecha/Hora:</span>
-                            <span class="text-white">${r.fecha.toLocaleString()}</span>
-                            
-                            <span class="text-slate-400">Registrado por:</span>
-                            <span class="text-white truncate">${r.nombre_usuario}</span>
-                        </div>
-                    </div>
-                `;
-                dashboard.innerHTML += html;
-            });
             
-            // Ajustar el grid para que se vea bien
-            dashboard.classList.remove('grid-cols-1');
-            dashboard.classList.add('grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3');
+            // 1. Renderizar Filtros
+            renderizarFiltrosMuros(zonasUnicas);
+            
+            // 2. Aplicar Filtro
+            if (!zonasUnicas.includes(currentMurosZoneFilter) && currentMurosZoneFilter !== 'TODOS') {
+                currentMurosZoneFilter = 'TODOS'; 
+            }
+            filtrarPorZonaMuros(currentMurosZoneFilter, false, muros);
+        }
+
+        /**
+         * Renderiza los botones de filtro para la vista de Muros.
+         */
+        function renderizarFiltrosMuros(zonas) {
+            const filterContainer = document.getElementById('murosZoneFilterContainer');
+            let buttonsHtml = '';
+
+            buttonsHtml += generarBotonFiltro('TODOS', currentMurosZoneFilter === 'TODOS', 'filtrarPorZonaMuros');
+
+            zonas.forEach(zona => {
+                buttonsHtml += generarBotonFiltro(zona, currentMurosZoneFilter === zona, 'filtrarPorZonaMuros');
+            });
+
+            filterContainer.innerHTML = buttonsHtml;
+        }
+
+        /**
+         * Filtra y renderiza los muros según la zona seleccionada.
+         */
+        async function filtrarPorZonaMuros(zonaSeleccionada, updateFilterControls = true, muros = null) {
+            currentMurosZoneFilter = zonaSeleccionada;
+            
+            if (!muros) muros = (await obtenerDatos()).perfilesMuros; 
+            const dashboard = document.getElementById('murosDashboard');
+            dashboard.innerHTML = '';
+            
+            const murosFiltrados = Object.entries(muros)
+                .filter(([clave, data]) => zonaSeleccionada === 'TODOS' || data.zona === zonaSeleccionada)
+                .sort(([, dataA], [, dataB]) => {
+                    // Ordenar por fecha más reciente primero (DESCENDENTE)
+                    const fechaA = dataA.ultimaFecha || new Date(0);
+                    const fechaB = dataB.ultimaFecha || new Date(0);
+                    
+                    if (fechaB - fechaA !== 0) {
+                        return fechaB - fechaA; // Ordena por fecha
+                    }
+                    
+                    // Si las fechas son iguales, usar el orden alfanumérico como desempate.
+                    const claveA = `${dataA.zona} - ${Object.keys(dataA.capasEstado)[0] || ''}`; // Desempate alfanumérico
+                    const claveB = `${dataB.zona} - ${Object.keys(dataB.capasEstado)[0] || ''}`;
+                    return compareAlphanumeric({ capa: claveA }, { capa: claveB });
+                });
+            
+            if (murosFiltrados.length === 0) {
+                 dashboard.innerHTML = `
+                    <div class="text-center py-20 text-slate-600 col-span-full">
+                        <i class="fa-solid fa-mountain-sun text-6xl mb-4 opacity-20"></i>
+                        <p>No hay muros en la zona seleccionada (${zonaSeleccionada}).</p>
+                    </div>`;
+            } else {
+                murosFiltrados.forEach(([claveMuro, dataMuro]) => {
+                    let html = `
+                        <div class="bg-mining-800 rounded-xl p-4 border border-mining-700 shadow-lg fade-in">
+                            <div class="svg-container relative">
+                                ${generarSvgMuro(claveMuro)}
+                            </div>
+                            
+                            <div class="mt-4 border-t border-mining-700 pt-3">
+                                <p class="text-xs text-slate-400 font-semibold mb-1">Últimos Registros (por Capa):</p>
+                                ${Object.keys(dataMuro.capasEstado).sort(compareAlphanumeric).map(capa => {
+                                    const r = dataMuro.capasEstado[capa];
+                                    return `
+                                        <div class="flex justify-between text-xs text-slate-300">
+                                            <span>Capa ${capa}:</span>
+                                            <span class="${r.estado === 'parcial' ? 'text-yellow-400' : 'text-green-400'} font-bold uppercase">${r.estado}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    `;
+                    dashboard.innerHTML += html;
+                    
+                    // Asegurar que el SVG se coloree después de estar en el DOM
+                    setTimeout(() => aplicarColorMuro(claveMuro, dataMuro.capasEstado), 0);
+                });
+            }
+
+            if (updateFilterControls) {
+                actualizarEstilosFiltro('murosZoneFilterContainer', zonaSeleccionada);
+            }
+        }
+        
+        // --- Funciones de RENDERIZADO COMUNES (SIN CAMBIOS) ---
+
+        /**
+         * Genera un botón de filtro con el manejador de clic correcto.
+         */
+        function generarBotonFiltro(zona, isActive, handlerFunction) {
+            const activeClass = 'bg-mining-accent text-white shadow-md';
+            const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+
+            return `
+                <button onclick="${handlerFunction}('${zona}')" class="px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${isActive ? activeClass : inactiveClass}">
+                    ${zona}
+                </button>
+            `;
+        }
+
+        /**
+         * Actualiza los estilos de los botones de filtro.
+         */
+        function actualizarEstilosFiltro(containerId, zonaSeleccionada) {
+             const filterContainer = document.getElementById(containerId);
+             const activeClass = 'bg-mining-accent text-white shadow-md';
+             const inactiveClass = 'bg-mining-900 text-slate-400 hover:bg-mining-700/50 hover:text-white border border-mining-700';
+
+             filterContainer.querySelectorAll('button').forEach(btn => {
+                const zonaBtn = btn.innerText.trim();
+                
+                if (zonaBtn === zonaSeleccionada) {
+                    btn.classList.remove(...inactiveClass.split(' '));
+                    btn.classList.add(...activeClass.split(' '));
+                } else {
+                    btn.classList.remove(...activeClass.split(' '));
+                    btn.classList.add(...inactiveClass.split(' '));
+                }
+            });
+        }
+        
+        function compareAlphanumeric(a, b) {
+            // Usa el campo 'capa' para comparar (que contiene la clave del muro en las funciones de filtro de muros)
+            const aStr = a.capa || a; 
+            const bStr = b.capa || b; 
+            
+            const regex = /(\d+)|(\D+)/g;
+            const partsA = aStr.match(regex) || [];
+            const partsB = bStr.match(regex) || [];
+
+            for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+                const partA = partsA[i] || '';
+                const partB = partsB[i] || '';
+
+                const isNumberA = /^\d+$/.test(partA);
+                const isNumberB = /^\d+$/.test(partB);
+
+                if (isNumberA && isNumberB) {
+                    const numA = parseInt(partA);
+                    const numB = parseInt(partB);
+                    if (numA !== numB) return numA - numB;
+                } else if (partA !== partB) {
+                    if (partA < partB) return -1;
+                    if (partA > partB) return 1;
+                }
+            }
+            return 0;
+        }
+
+        /**
+         * Genera la tarjeta de zona e incluye la lógica del tag "NUEVO" para cada registro.
+         */
+        function generarTarjetaZona(zona, dataZona) {
+            const tieneMuros = dataZona.muros && Object.keys(dataZona.muros).length > 0;
+            const tieneCanchas = dataZona.canchas && dataZona.canchas.length > 0;
+            const totalMuros = tieneMuros ? Object.keys(dataZona.muros).length : 0;
+            const totalCanchas = tieneCanchas ? dataZona.canchas.length : 0;
+            const ultimaFecha = dataZona.ultimaFecha ? `(Última carga: ${dataZona.ultimaFecha.toLocaleDateString()} ${dataZona.ultimaFecha.toLocaleTimeString()})` : '';
+
+            let html = `
+                <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in">
+                    <div class="bg-gradient-to-r from-mining-700 to-mining-800 p-4 border-b border-mining-700 flex justify-between items-center">
+                        <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-map-location-dot mr-2 text-slate-400"></i> ${zona}</h3>
+                        <span class="text-xs text-slate-400 italic">${ultimaFecha}</span>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            `;
+
+            // --- COLUMNA MUROS ---
+            html += `<div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase border-b border-mining-700 pb-2 mb-4">
+                            <i class="fa-solid fa-block-brick mr-1"></i> Muros (${totalMuros})
+                        </h4>`;
+            
+            if (tieneMuros) {
+                Object.keys(dataZona.muros).sort().forEach(muroNombre => {
+                    html += `
+                        <div class="bg-mining-900 rounded border border-mining-700 overflow-hidden">
+                            <h5 class="font-bold text-slate-200 p-3 bg-mining-700/50 border-b border-mining-700 text-sm">${muroNombre}</h5>
+                            <div class="divide-y divide-mining-700">`;
+                    
+                    // Ordenar registros de Muro por fecha DESC
+                    dataZona.muros[muroNombre].sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(capa => {
+                        const colorClass = capa.estado === 'completa' 
+                            ? 'text-mining-success bg-green-900/10 border-green-800' 
+                            : 'text-mining-warning bg-yellow-900/10 border-yellow-800';
+                        
+                        const userDisplay = capa.nombreUsuario || 'SIN REGISTRO';
+                        
+                        const tagNuevo = esRegistroNuevo(capa.fechaRaw) 
+                            ? '<span class="tag-nuevo">NUEVO</span>' 
+                            : '';
+                        
+                        html += `
+                            <div class="flex items-center justify-between px-4 py-3 hover:bg-mining-700/20 transition-colors">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-mono rounded border ${colorClass} px-2 py-0.5 inline-block w-fit font-bold">CAPA ${capa.capa} (${capa.estado.toUpperCase()})${tagNuevo}</span>
+                                    
+                                    <span class="text-xs text-slate-500 mt-1">
+                                        <i class="fa-solid fa-user-gear mr-1"></i> 
+                                        <span class="font-bold text-slate-400">${userDisplay}</span> | Turno: ${capa.turno}
+                                    </span>
+                                    
+                                    <span class="text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${capa.fecha}</span>
+                                </div>
+                                <div class="flex gap-1 text-right">
+                                    <button onclick="mostrarModalEdicion('${zona}', '${muroNombre}', '${capa.id}')" class="text-base text-yellow-500 hover:text-yellow-400 p-1 rounded-full transition-colors" title="Modificar">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button onclick="mostrarModalEliminarMuro('${zona}', '${muroNombre}', '${capa.id}')" class="text-base text-red-500 hover:text-red-400 p-1 rounded-full transition-colors" title="Eliminar">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div></div>`;
+                });
+            } else {
+                html += `<p class="text-sm text-slate-600 italic">Sin registros de muros.</p>`;
+            }
+            html += `</div>`; // Fin columna muros
+
+            // --- COLUMNA CANCHAS ---
+            html += `<div class="space-y-4">
+                        <h4 class="text-xs font-bold text-slate-400 uppercase border-b border-mining-700 pb-2 mb-4">
+                            <i class="fa-solid fa-mountain-sun mr-1"></i> Canchas (${totalCanchas})
+                        </h4>`;
+            
+            if (tieneCanchas) {
+                html += `<div class="space-y-2">`;
+                
+                // Ordenar registros de Cancha por fecha DESC
+                dataZona.canchas.sort((a, b) => b.fechaRaw - a.fechaRaw).forEach(cancha => {
+                    const nombreCompleto = `${cancha.pileta} / ${cancha.numero}`;
+                    const materialColorClass = cancha.material === 'FINO'
+                        ? 'bg-blue-900/20 text-blue-300 border-blue-800'
+                        : 'bg-orange-900/20 text-orange-300 border-orange-800';
+                        
+                    const userDisplay = cancha.nombreUsuario || 'SIN REGISTRO';
+                    
+                    const tagNuevo = esRegistroNuevo(cancha.fechaRaw) 
+                        ? '<span class="tag-nuevo ml-2">NUEVO</span>' 
+                        : '';
+
+                    html += `
+                        <div class="flex items-center justify-between bg-mining-900 p-3 rounded border border-mining-700 hover:bg-mining-700/20 transition-colors">
+                            <div class="flex-1 min-w-0">
+                                <span class="block text-sm font-bold text-slate-200 truncate">${nombreCompleto}${tagNuevo}</span>
+                                
+                                <span class="text-xs px-2 py-0.5 rounded-full font-bold border ${materialColorClass} inline-block mt-1 mr-2">
+                                    ${cancha.material}
+                                </span>
+                                
+                                <span class="block text-xs text-slate-500 mt-1">
+                                    <i class="fa-solid fa-user-gear mr-1"></i> 
+                                    <span class="font-bold text-slate-400">${userDisplay}</span> | Turno: ${cancha.turno}
+                                </span>
+
+                                <span class="block text-xs text-slate-500 mt-1"><i class="fa-regular fa-clock mr-1"></i> ${cancha.fecha}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="mostrarModalEdicionCancha('${zona}', '${cancha.id}')" class="text-base text-yellow-500 hover:text-yellow-400 p-1 rounded-full transition-colors" title="Modificar">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                <button onclick="mostrarModalEliminarCancha('${zona}', '${cancha.id}', '${nombreCompleto}')" class="text-base text-red-500 hover:text-red-400 p-1 rounded-full transition-colors" title="Eliminar">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            } else {
+                html += `<p class="text-sm text-slate-600 italic">Sin registros de canchas.</p>`;
+            }
+            html += `</div>`; 
+
+            html += `</div></div>`; 
+            return html;
+        }
+
+        // --- Funciones auxiliares (Modales y Formulario) ---
+
+        function showAlertModal(message) {
+            document.getElementById('alertMessage').innerText = message;
+            document.getElementById('alertModal').classList.replace('hidden', 'flex');
+        }
+
+        function hideAlertModal() {
+            document.getElementById('alertModal').classList.replace('flex', 'hidden');
+        }
+
+        function mostrarActionModal(title, message, confirmText, callback) {
+            const modal = document.getElementById('actionConfirmationModal');
+            document.getElementById('actionModalTitle').innerText = title;
+            document.getElementById('actionModalMessage').innerHTML = message;
+            document.getElementById('actionModalConfirmBtn').innerText = confirmText;
+            
+            const confirmBtn = document.getElementById('actionModalConfirmBtn');
+            confirmBtn.onclick = () => {
+                modal.classList.replace('flex', 'hidden');
+                callback();
+            };
+
+            modal.classList.replace('hidden', 'flex');
+        }
+        
+        function mostrarModalEliminarCancha(zona, recordId, nombreCompleto) {
+            mostrarActionModal(
+                'Eliminar Registro',
+                `¿Deseas eliminar el registro de cancha **${nombreCompleto}** en la zona **${zona}**?`,
+                'Eliminar',
+                () => eliminarRegistroCancha(zona, recordId) 
+            );
+        }
+
+        function mostrarModalLimpiarDB() {
+            mostrarActionModal(
+                'Confirmar Eliminación',
+                '¿Estás seguro de que deseas borrar <span class="font-bold text-white">todos</span> los datos de obra? Esta acción no se puede deshacer.',
+                'Sí, Borrar Todo',
+                limpiarDB
+            );
+        }
+
+        function mostrarModalEliminarMuro(zona, muroId, recordId) {
+            mostrarActionModal(
+                'Eliminar Registro',
+                `¿Deseas eliminar el registro de muro **${muroId}** en la zona **${zona}**?`,
+                'Eliminar',
+                () => eliminarRegistroMuro(zona, muroId, recordId)
+            );
+        }
+        
+        function handleChecks(seleccion) {
+            const parcial = document.getElementById('checkParcial');
+            const completa = document.getElementById('checkCompleta');
+
+            if (seleccion === 'parcial' && parcial.checked) {
+                completa.checked = false;
+            } else if (seleccion === 'completa' && completa.checked) {
+                parcial.checked = false;
+            }
+        }
+
+        function toggleForm() {
+            const tipo = document.getElementById('selectTipo').value;
+            const form = document.getElementById('dataForm');
+            const fieldsMuro = document.getElementById('fieldsMuro');
+            const fieldsCancha = document.getElementById('fieldsCancha');
+
+            form.classList.remove('hidden');
+            
+            // Limpiar y resetear IDs de edición al cambiar el tipo (a menos que se esté en edición)
+            if (!document.getElementById('recordIdToModify').value) {
+                document.getElementById('dataForm').reset();
+                document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+                document.getElementById('modificationHint').classList.add('hidden');
+                document.getElementById('cancelModificationBtn').classList.add('hidden'); // Ocultar si no hay edición
+            }
+
+            if (tipo === 'muro') {
+                fieldsMuro.classList.remove('hidden');
+                fieldsCancha.classList.add('hidden');
+                document.getElementById('muroZona').setAttribute('required', '');
+                document.getElementById('muroCapa').setAttribute('required', '');
+                document.getElementById('muroId').setAttribute('required', '');
+                document.getElementById('canchaZona').removeAttribute('required');
+                document.getElementById('canchaPileta').removeAttribute('required');
+                document.getElementById('canchaNumero').removeAttribute('required');
+
+            } else {
+                fieldsMuro.classList.add('hidden');
+                fieldsCancha.classList.remove('hidden');
+                document.getElementById('muroZona').removeAttribute('required');
+                document.getElementById('muroCapa').removeAttribute('required');
+                document.getElementById('muroId').removeAttribute('required');
+                document.getElementById('canchaZona').setAttribute('required', '');
+                document.getElementById('canchaPileta').setAttribute('required', '');
+                document.getElementById('canchaNumero').setAttribute('required', '');
+            }
+        }
+        
+        // 🔥 MODIFICACIÓN JS: FUNCIÓN CANCELAR MODIFICACIÓN 🔥
+        /**
+         * Cancela el modo de modificación y vuelve al modo de carga normal.
+         */
+        function cancelarModificacion() {
+            // 1. Resetear el formulario y los campos ocultos
+            document.getElementById('dataForm').reset();
+            document.getElementById('recordIdToModify').value = "";
+            document.getElementById('originalZona').value = "";
+            
+            // 2. Ocultar el botón de cancelar y la pista de modificación
+            document.getElementById('cancelModificationBtn').classList.add('hidden');
+            document.getElementById('modificationHint').classList.add('hidden');
+            
+            // 3. Restaurar el título
+            document.getElementById('cargaTitle').innerText = 'Menú de Carga';
+            
+            // 4. Ocultar los campos de Muro/Cancha y el formulario principal, y resetear el selector de tipo
+            document.getElementById('fieldsMuro').classList.add('hidden');
+            document.getElementById('fieldsCancha').classList.add('hidden');
+            document.getElementById('dataForm').classList.add('hidden');
+            document.getElementById('selectTipo').value = "";
+        }
+        // FIN MODIFICACIÓN JS
+        
+        /**
+         * Lógica de edición para registros de Muros.
+         */
+        async function mostrarModalEdicion(zona, muroId, recordId) {
+            if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para editar datos.");
+            
+            // 1. Consultar el registro específico
+            const { data, error } = await supabaseClient
+                .from('muros_registros')
+                .select('id, zona, muro_id, capa, estado, turno')
+                .eq('id', recordId)
+                .single();
+
+            if (error || !data) {
+                console.error("Error al obtener registro para editar:", error);
+                return showAlertModal("No se pudo cargar el registro para edición. Por favor, intente de nuevo.");
+            }
+            
+            // 2. Preparar la vista de Carga
+            cambiarPestana('carga'); 
+            document.getElementById('selectTipo').value = 'muro';
+            toggleForm(); // Muestra el formulario de muro
+
+            // 3. Rellenar los campos
+            document.getElementById('cargaTitle').innerText = 'Modificar Registro (Muro)';
+            document.getElementById('modificationHint').classList.remove('hidden');
+            document.getElementById('cancelModificationBtn').classList.remove('hidden'); // 🔥 Mostrar Cancelar
+            
+            document.getElementById('recordIdToModify').value = data.id;
+            document.getElementById('originalZona').value = data.zona; 
+            
+            document.getElementById('muroZona').value = data.zona;
+            document.getElementById('muroId').value = data.muro_id;
+            document.getElementById('muroCapa').value = data.capa;
+            document.getElementById('selectTurno').value = data.turno;
+
+            // 4. Rellenar los checkboxes
+            const checkParcial = document.getElementById('checkParcial');
+            const checkCompleta = document.getElementById('checkCompleta');
+            
+            checkParcial.checked = data.estado === 'parcial';
+            checkCompleta.checked = data.estado === 'completa';
+            handleChecks(data.estado); 
+        }
+
+        /**
+         * Lógica de edición para registros de Canchas.
+         */
+        async function mostrarModalEdicionCancha(zona, recordId) {
+             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para editar datos.");
+            
+            // 1. Consultar el registro específico
+            const { data, error } = await supabaseClient
+                .from('canchas_registros')
+                .select('id, zona, pileta, numero, material, turno')
+                .eq('id', recordId)
+                .single();
+
+            if (error || !data) {
+                console.error("Error al obtener registro para editar:", error);
+                return showAlertModal("No se pudo cargar el registro para edición. Por favor, intente de nuevo.");
+            }
+
+            // 2. Preparar la vista de Carga
+            cambiarPestana('carga');
+            document.getElementById('selectTipo').value = 'cancha';
+            toggleForm(); // Muestra el formulario de cancha
+
+            // 3. Rellenar los campos
+            document.getElementById('cargaTitle').innerText = 'Modificar Registro (Muro)';
+            document.getElementById('modificationHint').classList.remove('hidden');
+            document.getElementById('cancelModificationBtn').classList.remove('hidden'); // 🔥 Mostrar Cancelar
+            
+            document.getElementById('recordIdToModify').value = data.id;
+            document.getElementById('originalZona').value = data.zona; 
+            
+            document.getElementById('muroZona').value = data.zona;
+            document.getElementById('muroId').value = data.muro_id;
+            document.getElementById('muroCapa').value = data.capa;
+            document.getElementById('selectTurno').value = data.turno;
+
+            // 4. Rellenar los checkboxes
+            const checkParcial = document.getElementById('checkParcial');
+            const checkCompleta = document.getElementById('checkCompleta');
+            
+            checkParcial.checked = data.estado === 'parcial';
+            checkCompleta.checked = data.estado === 'completa';
+            handleChecks(data.estado); 
+        }
+
+        /**
+         * Lógica de edición para registros de Canchas.
+         */
+        async function mostrarModalEdicionCancha(zona, recordId) {
+             if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para editar datos.");
+            
+            // 1. Consultar el registro específico
+            const { data, error } = await supabaseClient
+                .from('canchas_registros')
+                .select('id, zona, pileta, numero, material, turno')
+                .eq('id', recordId)
+                .single();
+
+            if (error || !data) {
+                console.error("Error al obtener registro para editar:", error);
+                return showAlertModal("No se pudo cargar el registro para edición. Por favor, intente de nuevo.");
+            }
+
+            // 2. Preparar la vista de Carga
+            cambiarPestana('carga');
+            document.getElementById('selectTipo').value = 'cancha';
+            toggleForm(); // Muestra el formulario de cancha
+
+            // 3. Rellenar los campos
+            document.getElementById('cargaTitle').innerText = 'Modificar Registro (Cancha)';
+            document.getElementById('modificationHint').classList.remove('hidden');
+            document.getElementById('cancelModificationBtn').classList.remove('hidden'); // 🔥 Mostrar Cancelar
+
+            document.getElementById('recordIdToModify').value = data.id;
+            document.getElementById('originalZona').value = data.zona;
+
+            document.getElementById('canchaZona').value = data.zona;
+            document.getElementById('canchaPileta').value = data.pileta;
+            document.getElementById('canchaNumero').value = data.numero;
+            document.getElementById('canchaMaterial').value = data.material;
+            document.getElementById('selectTurno').value = data.turno;
+        }
+        
+        function mostrarToast(message = "Datos guardados correctamente", type = 'blue') {
+            const toast = document.getElementById('toast');
+            const icon = toast.querySelector('i');
+            const span = toast.querySelector('span');
+
+            toast.className = 'fixed bottom-5 right-5 text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3';
+
+            span.innerText = message;
+            
+            if (type === 'blue') {
+                toast.classList.add('bg-mining-800', 'border-l-4', 'border-mining-accent');
+                icon.className = 'fa-solid fa-circle-check text-mining-accent';
+            } else if (type === 'red') {
+                toast.classList.add('bg-red-800/80', 'border-l-4', 'border-red-500');
+                icon.className = 'fa-solid fa-trash-can text-red-500';
+            } else if (type === 'yellow') {
+                 toast.classList.add('bg-yellow-800/80', 'border-l-4', 'border-yellow-500');
+                icon.className = 'fa-solid fa-pen-to-square text-yellow-500';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        
+        // Función de borrado total (solo para administración/desarrollo)
+        async function limpiarDB() {
+            // Se debe establecer un correo específico para el administrador o un rol de administrador en Supabase
+            if (!currentUser || currentUser.email !== 'admin@example.com') {
+                 return showAlertModal("Acceso denegado: Solo el administrador puede ejecutar esta acción.");
+            }
+            
+            const { error: errorMuros } = await supabaseClient.from('muros_registros').delete().neq('id', 0);
+            const { error: errorCanchas } = await supabaseClient.from('canchas_registros').delete().neq('id', 0);
+
+            if (errorMuros || errorCanchas) {
+                console.error("Error al limpiar DB:", errorMuros || errorCanchas);
+                showAlertModal(`Error al limpiar la base de datos: ${errorMuros?.message || errorCanchas?.message}`);
+            } else {
+                mostrarToast("Base de datos limpiada completamente.", 'red');
+                cambiarPestana('visualizacion'); // Recargar las vistas
+            }
         }
     </script>
 </body>
