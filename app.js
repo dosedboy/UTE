@@ -259,6 +259,58 @@ async function obtenerDatos() {
     return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; 
 }
 
+/**
+ * Obtiene los últimos N registros de muros y canchas combinados.
+ */
+async function obtenerUltimosRegistros(limit = 15) {
+    if (!currentUser) return [];
+
+    // Consulta para Muros (agregando campos específicos para el log)
+    const { data: murosData, error: murosError } = await supabaseClient
+        .from('muros_registros')
+        .select(`*, muro_id, capa, estado`)
+        .order('fecha', { ascending: false })
+        .limit(limit);
+
+    // Consulta para Canchas (agregando campos específicos para el log)
+    const { data: canchasData, error: canchasError } = await supabaseClient
+        .from('canchas_registros')
+        .select(`*, pileta, numero, material`)
+        .order('fecha', { ascending: false })
+        .limit(limit);
+
+    if (murosError || canchasError) {
+        console.error("Error al obtener logs:", murosError || canchasError);
+        return [];
+    }
+
+    // 1. Mapear y estandarizar los datos
+    const logsMuros = murosData.map(r => ({
+        tipo: 'MURO',
+        fechaRaw: new Date(r.fecha),
+        zona: r.zona,
+        turno: r.turno,
+        usuario: r.nombre_usuario || 'DESCONOCIDO',
+        descripcion: `Muro ${r.muro_id} - Capa ${r.capa} (${r.estado.toUpperCase()})`
+    }));
+
+    const logsCanchas = canchasData.map(r => ({
+        tipo: 'CANCHA',
+        fechaRaw: new Date(r.fecha),
+        zona: r.zona,
+        turno: r.turno,
+        usuario: r.nombre_usuario || 'DESCONOCIDO',
+        descripcion: `Cancha ${r.pileta}/${r.numero} (${r.material})`
+    }));
+
+    // 2. Combinar, ordenar y limitar
+    const allLogs = [...logsMuros, ...logsCanchas];
+    allLogs.sort((a, b) => b.fechaRaw - a.fechaRaw); // Orden descendente
+
+    return allLogs.slice(0, limit);
+}
+
+
 async function guardarDatos(e) {
     e.preventDefault();
     if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
@@ -430,8 +482,14 @@ async function renderizarDatosReporte() {
                 <p>No hay registros cargados aún.</p>
                 <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
             </div>`;
+        document.getElementById('recentActivityLog').innerHTML = `<p class="text-sm text-slate-600 italic text-center py-4">No se encontraron registros recientes.</p>`;
         return;
     }
+
+    // --- NUEVO: Renderizar Log de Actividad Reciente ---
+    const ultimosRegistros = await obtenerUltimosRegistros(15); // Limitar a 15 entradas
+    renderizarLogActividad(ultimosRegistros);
+    // ----------------------------------------------------
 
     renderizarFiltrosReporte(zonas);
     
@@ -514,6 +572,49 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
         }
     });
 }
+
+/**
+ * Renderiza el Log de Actividad Reciente en el contenedor del dashboard.
+ */
+function renderizarLogActividad(logs) {
+    const logContainer = document.getElementById('recentActivityLog');
+    logContainer.innerHTML = ''; // Limpiar contenido anterior
+
+    if (logs.length === 0) {
+        logContainer.innerHTML = `<p class="text-sm text-slate-600 italic text-center py-4">No se encontraron registros recientes.</p>`;
+        return;
+    }
+
+    logs.forEach(log => {
+        // Formatear fecha y hora
+        const fecha = log.fechaRaw.toLocaleDateString('es-ES');
+        const hora = log.fechaRaw.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+        // Determinar estilo por tipo
+        const icon = log.tipo === 'MURO' 
+            ? '<i class="fa-solid fa-block-brick text-blue-400"></i>' 
+            : '<i class="fa-solid fa-mountain-sun text-yellow-400"></i>';
+        
+        const background = 'bg-mining-900/50';
+
+        const html = `
+            <div class="${background} p-3 rounded-lg border border-mining-700 text-xs shadow-sm fade-in">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-bold text-white uppercase flex items-center gap-2">
+                        ${icon} ${log.tipo} (${log.zona})
+                    </span>
+                    <span class="text-slate-500">${fecha} ${hora}</span>
+                </div>
+                <p class="text-slate-300 ml-5">${log.descripcion}</p>
+                <p class="text-slate-500 mt-1 ml-5">
+                    <i class="fa-solid fa-user-gear mr-1"></i> ${log.usuario} | Turno: ${log.turno}
+                </p>
+            </div>
+        `;
+        logContainer.innerHTML += html;
+    });
+}
+
 
 // --- Funciones de RENDERIZADO de Muros (Perfil) ---
 
@@ -1316,4 +1417,4 @@ async function limpiarDB() {
         mostrarToast("Base de datos limpiada completamente.", 'red');
         cambiarPestana('visualizacion'); // Recargar las vistas
     }
-                    }
+}
