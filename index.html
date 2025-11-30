@@ -67,7 +67,7 @@
             letter-spacing: 0.05em;
         }
         
-        /* ESTILO: Log de Consola */
+        /* ESTILO CORREGIDO: Log de Consola */
         #recentActivityLog {
             background-color: #0f172a; /* Fondo muy oscuro */
             color: #ccc; /* Texto base gris claro */
@@ -75,12 +75,14 @@
             height: 200px; /* Altura fija */
             overflow-y: auto;
             white-space: pre-wrap; /* Permite saltos de línea y conserva espacios */
+            text-align: left; /* Aseguramos alineación a la izquierda */
         }
-        /* Garantiza que cada entrada de log es una línea simple sin bordes */
+        /* Garantiza que cada entrada de log es una línea simple sin bordes y ocupa todo el ancho */
         .log-line {
-            display: block;
+            display: block; 
             margin-bottom: 2px;
             line-height: 1.5;
+            text-align: left; /* Aseguramos que no haya centrados */
         }
     </style>
 </head>
