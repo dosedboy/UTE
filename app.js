@@ -20,11 +20,11 @@ const CAPA_SVG_MAP = {
 const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
 
 // =========================================================================
-// === ANCHOS DE COLUMNA PARA EL LOG MONOESPACIADO ===
+// === ANCHOS DE COLUMNA PARA EL LOG MONOESPACIADO (AJUSTADO) ===
 // =========================================================================
 const COL_WIDTHS = {
     TIMESTAMP: 18,  // [DD/MM/AA HH:MM]
-    USER: 14,       // Usuario (Ej: franco rojas)
+    USER: 13,       // Usuario (Ej: franco rojas) - AJUSTADO
     TURNO: 5,       // DIA/NOCHE
     ZONA: 5,        // PC3/PL5/MLP2
     PILETA: 4,      // A/B/C o ' ' (si es muro)
@@ -617,7 +617,7 @@ function renderizarLogActividad(logs) {
         const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`.padEnd(COL_WIDTHS.TIMESTAMP, ' '); 
         
         // --- 2. Formateo de Campos Fijos con padding (padEnd) ---
-        // Aseguramos que el usuario no tenga más de 14 caracteres
+        // Aseguramos que el usuario no tenga más de 13 caracteres (COL_WIDTHS.USER)
         const usuario = log.usuario.substring(0, COL_WIDTHS.USER - 1).toUpperCase().padEnd(COL_WIDTHS.USER, ' ');
         const turno = log.turno.padEnd(COL_WIDTHS.TURNO, ' ');
         const zona = log.zona.padEnd(COL_WIDTHS.ZONA, ' ');
@@ -1535,4 +1535,3 @@ window.mostrarModalEdicion = mostrarModalEdicion;
 window.mostrarModalEdicionCancha = mostrarModalEdicionCancha;
 window.mostrarModalEliminarMuro = mostrarModalEliminarMuro;
 window.mostrarModalEliminarCancha = mostrarModalEliminarCancha;
-
