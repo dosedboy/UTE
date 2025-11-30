@@ -3,365 +3,312 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Civil Minero</title>
+    <title>Sistema de Gestión de Obra Minera</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
-                        mining: {
-                            900: '#0f172a', 
-                            800: '#1e293b', 
-                            700: '#334155', 
-                            accent: '#3b82f6', 
-                            warning: '#eab308', 
-                            success: '#22c59e'  
-                        }
-                    }
+                        'mining-primary': '#0f172a', // slate-900
+                        'mining-secondary': '#1e293b', // slate-800
+                        'mining-accent': '#38bdf8', // sky-400 (azul brillante)
+                        'mining-success': '#4ade80', // green-400
+                        'mining-warning': '#facc15', // yellow-400
+                        'mining-error': '#f87171', // red-400
+                        'mining-700': '#334155', // slate-700
+                        'mining-800': '#1e293b', // slate-800
+                        'mining-900': '#0f172a', // slate-900
+                    },
                 }
             }
         }
     </script>
+    
     <style>
-        body { 
-            font-family: 'Inter', sans-serif; 
-            overflow-y: auto; 
+        body {
+            background-color: #0f172a; /* Fondo principal oscuro */
         }
-        .fade-in { animation: fadeIn 0.3s ease-in-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        /* --- ESTILOS SVG MUROS --- */
         .svg-capa {
-            fill: #334155; 
-            stroke: #0f172a; 
+            fill: #334155; /* Color base (slate-700) */
+            stroke: #0f172a; /* Borde oscuro */
             stroke-width: 1;
-            transition: fill 0.3s ease-in-out; 
+            transition: fill 0.3s ease;
             cursor: pointer;
         }
         .svg-capa:hover {
+            fill: #475569; /* slate-600 */
+        }
+        .svg-capa.color-parcial {
+            fill: #fbbf24; /* amber-400 / mining-warning */
             opacity: 0.8;
         }
-        .color-parcial { fill: #eab308 !important; } 
-        .color-completa { fill: #22c59e !important; } 
-        
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-        
-        /* 🔥 ESTILO: Etiqueta "NUEVO" */
+        .svg-capa.color-completa {
+            fill: #22c55e; /* green-500 / mining-success */
+            opacity: 0.8;
+        }
         .tag-nuevo {
-            background-color: #ef4444; /* Rojo 500 */
-            color: white;
-            padding: 1px 6px;
-            border-radius: 4px;
-            font-size: 0.65rem; /* texto muy pequeño */
+            background-color: #38bdf8;
+            color: #0f172a;
+            font-size: 0.6rem;
             font-weight: bold;
-            line-height: 1;
-            margin-left: 8px;
-            white-space: nowrap;
-            letter-spacing: 0.05em;
+            padding: 0px 4px;
+            border-radius: 4px;
+            margin-left: 4px;
+            animation: pulse-tag 1.5s infinite;
         }
-        
-        /* ESTILO CORREGIDO: Log de Consola */
-        #recentActivityLog {
-            background-color: #0f172a; /* Fondo muy oscuro */
-            color: #ccc; /* Texto base gris claro */
-            padding: 12px;
-            height: 200px; /* Altura fija */
-            overflow-y: auto;
-            white-space: pre-wrap; /* Permite saltos de línea y conserva espacios */
-            text-align: left; /* Aseguramos alineación a la izquierda */
+        @keyframes pulse-tag {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.7; }
         }
-        /* Garantiza que cada entrada de log es una línea simple sin bordes y ocupa todo el ancho */
-        .log-line {
-            display: block; 
-            margin-bottom: 2px;
-            line-height: 1.5;
-            text-align: left; /* Aseguramos que no haya centrados */
+        .log-card {
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
-<body class="bg-mining-900 text-slate-200 min-h-screen flex flex-col">
+<body class="bg-mining-primary min-h-screen text-slate-200">
 
-    <nav id="mainNav" class="bg-mining-800 border-b border-mining-700 p-4 shadow-lg z-50 sticky top-0 hidden">
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
-            
-            <div class="flex items-center gap-4">
-                <h1 class="text-xl font-bold text-white flex items-center gap-2">
-                    <i class="fa-solid fa-helmet-safety text-mining-accent"></i> 
-                    UTE-CP2 <span id="userInfo" class="text-xs font-normal text-slate-400 hidden sm:inline">| Gestión de Obra</span>
-                </h1>
+    <header class="bg-mining-900 shadow-md sticky top-0 z-10">
+        <nav class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center">
+                <i class="fa-solid fa-hard-hat text-2xl text-mining-accent mr-3"></i>
+                <h1 class="text-xl font-extrabold tracking-wider">GESTIÓN DE OBRA</h1>
             </div>
             
-            <div class="flex items-center gap-4">
-                <div class="flex bg-mining-900 rounded-lg p-1 border border-mining-700">
-                    <button onclick="cambiarPestana('carga')" id="btnCarga" class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow">
-                        <i class="fa-regular fa-floppy-disk mr-2"></i> Cargar Datos
+            <div id="mainNav" class="hidden">
+                <button id="btnCarga" onclick="cambiarPestana('carga')" class="px-4 py-2 rounded-md text-sm font-medium transition-all bg-mining-accent text-white shadow">Carga de Datos</button>
+                <button id="btnVer" onclick="cambiarPestana('visualizacion')" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">Ver Reporte Detallado</button>
+                <button id="btnVerMuros" onclick="cambiarPestana('visualizacionMuros')" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">Ver Perfil Muros</button>
+            </div>
+
+            <div class="flex items-center text-sm">
+                <span id="userInfo" class="text-slate-400 mr-4">| Sesión: Anónimo</span>
+                <button id="logoutBtn" onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md text-sm transition-colors">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="py-8">
+
+        <div id="viewLogin" class="min-h-screen flex items-center justify-center hidden">
+            <div class="bg-mining-800 p-8 rounded-xl shadow-2xl w-full max-w-sm border border-mining-700">
+                <h2 class="text-3xl font-bold text-white mb-6 text-center">Acceso al Sistema</h2>
+                <form id="loginForm" onsubmit="handleLogin(event)">
+                    <div class="mb-4">
+                        <label for="loginEmail" class="block text-sm font-medium text-slate-400 mb-1">Email</label>
+                        <input type="email" id="loginEmail" required class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                    </div>
+                    <div class="mb-6">
+                        <label for="loginPassword" class="block text-sm font-medium text-slate-400 mb-1">Contraseña</label>
+                        <input type="password" id="loginPassword" required class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                    </div>
+                    <button type="submit" class="w-full bg-mining-accent hover:bg-sky-500 text-mining-primary font-bold py-2 rounded-lg transition-colors shadow-lg">
+                        Iniciar Sesión
                     </button>
-                    <button onclick="cambiarPestana('visualizacion')" id="btnVer" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-line mr-2"></i> Visualizar Reporte
-                    </button>
-                    <button onclick="cambiarPestana('visualizacionMuros')" id="btnVerMuros" class="px-4 py-2 rounded-md text-sm font-medium text-slate-400 hover:text-white transition-all">
-                        <i class="fa-solid fa-chart-area mr-2"></i> Muros (Perfil)
-                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="viewCarga" class="hidden container mx-auto p-4 md:p-8 max-w-2xl">
+            <h2 id="cargaTitle" class="text-3xl font-bold text-white mb-6 text-center">Menú de Carga</h2>
+            
+            <p id="modificationHint" class="hidden text-sm text-yellow-400 bg-yellow-900/20 p-3 rounded-lg mb-4 text-center border border-yellow-800">
+                <i class="fa-solid fa-circle-exclamation mr-2"></i> Estás en **Modo Modificación**. Guarda los cambios o cancela para volver a la Carga.
+            </p>
+
+            <div class="bg-mining-800 p-6 rounded-xl shadow-2xl border border-mining-700">
+                
+                <div class="mb-6">
+                    <label for="selectTipo" class="block text-sm font-medium text-slate-400 mb-2">Seleccione el Tipo de Registro:</label>
+                    <select id="selectTipo" onchange="toggleForm()" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                        <option value="" disabled selected>-- Seleccione --</option>
+                        <option value="muro">Muro / Terraplén</option>
+                        <option value="cancha">Cancha / Piscina</option>
+                    </select>
                 </div>
                 
-                <button onclick="handleLogout()" class="text-red-400 hover:text-red-300 transition-colors text-sm font-medium flex items-center gap-1">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                    <span class="hidden sm:inline">Salir</span>
+                <form id="dataForm" onsubmit="guardarDatos(event)" class="hidden space-y-4">
+                    
+                    <input type="hidden" id="recordIdToModify" value="">
+                    <input type="hidden" id="originalZona" value="">
+                    
+                    <div>
+                        <label for="selectTurno" class="block text-sm font-medium text-slate-400 mb-1">Turno (T1, T2, T3)</label>
+                        <select id="selectTurno" required class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                            <option value="T1">T1</option>
+                            <option value="T2">T2</option>
+                            <option value="T3">T3</option>
+                        </select>
+                    </div>
+
+                    <div id="fieldsMuro" class="hidden space-y-4 border-t border-mining-700 pt-4">
+                        <h3 class="text-lg font-bold text-mining-accent">Datos de Muro</h3>
+                        
+                        <div>
+                            <label for="muroZona" class="block text-sm font-medium text-slate-400 mb-1">Zona (Ej: MLP-2)</label>
+                            <input type="text" id="muroZona" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <div class="flex-1">
+                                <label for="muroId" class="block text-sm font-medium text-slate-400 mb-1">ID Muro (Ej: M-05A)</label>
+                                <input type="text" id="muroId" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                            </div>
+                            <div class="flex-1">
+                                <label for="muroCapa" class="block text-sm font-medium text-slate-400 mb-1">Capa (Ej: BASAL, 1, 2...)</label>
+                                <input type="text" id="muroCapa" placeholder="BASAL, 1, 2, 3, etc." class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                            </div>
+                        </div>
+                        
+                        <div class="pt-2">
+                            <span class="block text-sm font-medium text-slate-400 mb-2">Estado de la Capa:</span>
+                            <div class="flex space-x-4">
+                                <label class="flex items-center text-yellow-400">
+                                    <input type="checkbox" id="checkParcial" onclick="handleChecks('parcial')" class="form-checkbox h-5 w-5 bg-mining-900 border-yellow-500 rounded text-yellow-500 focus:ring-yellow-500">
+                                    <span class="ml-2 font-semibold">Parcial</span>
+                                </label>
+                                <label class="flex items-center text-green-400">
+                                    <input type="checkbox" id="checkCompleta" onclick="handleChecks('completa')" class="form-checkbox h-5 w-5 bg-mining-900 border-green-500 rounded text-green-500 focus:ring-green-500">
+                                    <span class="ml-2 font-semibold">Completa</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="fieldsCancha" class="hidden space-y-4 border-t border-mining-700 pt-4">
+                        <h3 class="text-lg font-bold text-mining-accent">Datos de Cancha</h3>
+                        
+                        <div>
+                            <label for="canchaZona" class="block text-sm font-medium text-slate-400 mb-1">Zona (Ej: PC-3)</label>
+                            <input type="text" id="canchaZona" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <div class="flex-1">
+                                <label for="canchaPileta" class="block text-sm font-medium text-slate-400 mb-1">Pileta (Ej: P2)</label>
+                                <input type="text" id="canchaPileta" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                            </div>
+                            <div class="flex-1">
+                                <label for="canchaNumero" class="block text-sm font-medium text-slate-400 mb-1">N° Cancha (Ej: C07)</label>
+                                <input type="text" id="canchaNumero" class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="canchaMaterial" class="block text-sm font-medium text-slate-400 mb-1">Material</label>
+                            <select id="canchaMaterial" required class="w-full px-4 py-2 bg-mining-900 border border-mining-700 rounded-lg text-white focus:ring-mining-accent focus:border-mining-accent">
+                                <option value="FINO">Fino</option>
+                                <option value="GRUESO">Grueso</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-4 pt-4">
+                        <button type="submit" class="flex-1 bg-mining-success hover:bg-green-600 text-mining-primary font-bold py-3 rounded-lg transition-colors shadow-lg">
+                            <i class="fa-solid fa-save mr-2"></i> Guardar Registro
+                        </button>
+                        <button type="button" id="cancelModificationBtn" onclick="cancelarModificacion()" class="hidden bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg transition-colors shadow-lg">
+                            <i class="fa-solid fa-xmark mr-2"></i> Cancelar
+                        </button>
+                    </div>
+                </form>
+                
+            </div>
+            
+            <div class="mt-8 text-center">
+                <button onclick="mostrarModalLimpiarDB()" class="text-xs text-red-500 hover:text-red-300 transition-colors">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> (Admin) Limpiar Base de Datos
                 </button>
             </div>
         </div>
-    </nav>
-
-    <main class="flex-1 max-w-4xl mx-auto w-full p-4 md:p-8">
         
-        <section id="viewLogin" class="fade-in flex flex-col items-center justify-center min-h-[70vh]">
-            <div class="max-w-sm mx-auto w-full bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-8 space-y-6">
-                <h2 class="text-3xl font-bold text-white text-center flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-user-lock text-mining-accent"></i> 
-                    Acceso al Sistema
-                </h2>
-                <p class="text-sm text-slate-400 text-center">Ingrese sus credenciales para acceder a la gestión de obra.</p>
-
-                <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
-                    
-                    <div class="space-y-1">
-                        <label for="loginEmail" class="text-xs text-slate-400 font-bold uppercase">Correo Electrónico</label>
-                        <input type="email" id="loginEmail" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="su.correo@empresa.com">
-                    </div>
-
-                    <div class="space-y-1">
-                        <label for="loginPassword" class="text-xs text-slate-400 font-bold uppercase">Contraseña</label>
-                        <input type="password" id="loginPassword" required class="w-full bg-mining-900 border border-mining-700 p-3 rounded text-white focus:border-mining-accent outline-none" placeholder="******">
-                    </div>
-
-                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2 mt-6">
-                        <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión
-                    </button>
-                </form>
-            </div>
-        </section>
-
-        <section id="viewCarga" class="fade-in hidden">
-            <div class="max-w-xl mx-auto bg-mining-800 rounded-xl border border-mining-700 shadow-2xl p-6 space-y-6">
-                
-                <h2 class="text-2xl font-bold text-white border-b border-mining-700 pb-3" id="cargaTitle">Menú de Carga</h2>
-                <p id="modificationHint" class="text-sm text-yellow-400 hidden"><i class="fa-solid fa-lightbulb mr-1"></i> Estás cargando una **modificación**. Guarda el registro con los datos corregidos.</p>
-                
-                <div class="space-y-2">
-                    <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Tipo de Registro</label>
-                    <div class="relative">
-                        <select id="selectTipo" onchange="toggleForm()" class="w-full bg-mining-900 border border-mining-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-mining-accent focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
-                            <option value="" disabled selected>Seleccione una opción...</option>
-                            <option value="muro">MURO</option>
-                            <option value="cancha">CANCHA</option>
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                            <i class="fa-solid fa-chevron-down text-xs"></i>
-                        </div>
-                    </div>
+        <div id="viewVisualizacion" class="hidden container mx-auto p-4 md:p-8">
+            
+            <div class="bg-mining-800 rounded-xl p-4 md:p-6 border border-mining-700 shadow-xl mb-8">
+                <div class="flex justify-between items-center mb-4 border-b border-mining-700/50 pb-2">
+                    <h2 class="text-xl font-bold text-slate-200">
+                        <i class="fa-solid fa-list-check mr-2 text-mining-accent"></i> Log de Últimos Registros
+                    </h2>
+                    <span class="text-xs text-slate-400">Total Registros: <span id="totalRegistros" class="font-bold">0</span></span>
                 </div>
                 
-                <form id="dataForm" onsubmit="guardarDatos(event)" class="space-y-6 hidden fade-in">
-                    
-                    <div class="space-y-2">
-                        <label class="text-xs font-semibold text-slate-400 tracking-wider uppercase">Turno de Carga</label>
-                        <div class="relative">
-                            <select id="selectTurno" required class="w-full bg-mining-900 border border-mining-700 text-white p-3 rounded-lg focus:ring-2 focus:ring-mining-accent focus:border-transparent outline-none appearance-none cursor-pointer transition-all">
-                                <option value="" disabled selected>Seleccione el turno...</option>
-                                <option value="DIA">DÍA</option>
-                                <option value="NOCHE">NOCHE</option>
-                            </select>
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
-                            </div>
-                        </div>
-                    </div>
-                    <input type="hidden" id="recordIdToModify" value="">
-                    <input type="hidden" id="originalZona" value="">
-                    <input type="hidden" id="originalKey" value="">
-
-                    <div id="fieldsMuro" class="hidden space-y-5">
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="muroZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: MLP-2 / PC-3 / PL-5" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Muro</label>
-                            <input type="text" id="muroId" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: M2A / M3AB / M45B" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Capa</label>
-                            <input type="text" id="muroCapa" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: BASAL / 1 / 2 / 6" required>
-                        </div>
-
-                        <div class="bg-mining-900 p-4 rounded border border-mining-700">
-                            <label class="text-xs text-slate-400 font-bold uppercase block mb-3">Estado de Capa</label>
-                            <div class="flex gap-4">
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" id="checkParcial" name="estadoMuro" class="peer hidden" onchange="handleChecks('parcial')">
-                                    <span class="w-5 h-5 border-2 border-slate-600 rounded flex items-center justify-center peer-checked:bg-yellow-500 peer-checked:border-yellow-500 transition-all">
-                                        <i class="fa-solid fa-check text-black text-xs opacity-0 peer-checked:opacity-100"></i>
-                                    </span>
-                                    <span class="text-sm group-hover:text-yellow-400 transition-colors">PARCIAL</span>
-                                </label>
-
-                                <label class="flex items-center gap-2 cursor-pointer group">
-                                    <input type="checkbox" id="checkCompleta" name="estadoMuro" class="peer hidden" onchange="handleChecks('completa')">
-                                    <span class="w-5 h-5 border-2 border-slate-600 rounded flex items-center justify-center peer-checked:bg-green-500 peer-checked:border-green-500 transition-all">
-                                        <i class="fa-solid fa-check text-black text-xs opacity-0 peer-checked:opacity-100"></i>
-                                    </span>
-                                    <span class="text-sm group-hover:text-green-400 transition-colors">COMPLETA</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="fieldsCancha" class="hidden space-y-5">
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Zona</label>
-                            <input type="text" id="canchaZona" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: PC-3 / MLP-2 / PL-5" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Pileta</label>
-                            <input type="text" id="canchaPileta" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Ej: A / B / C" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Cancha #</label>
-                            <input type="text" id="canchaNumero" class="w-full bg-mining-900 border border-mining-700 p-2.5 rounded text-white focus:border-mining-accent outline-none" placeholder="Número de cancha" required>
-                        </div>
-
-                        <div class="space-y-1">
-                            <label class="text-xs text-slate-400 font-bold uppercase">Material</label>
-                            <div class="relative">
-                                <select id="canchaMaterial" class="w-full bg-mining-900 border border-mining-700 text-white p-2.5 rounded focus:border-mining-accent outline-none appearance-none">
-                                    <option value="FINO">FINO</option>
-                                    <option value="MASIVO">MASIVO</option>
-                                </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
-                                    <i class="fa-solid fa-chevron-down text-xs"></i>
-                                </div
-                            ></div>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-mining-accent hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex justify-center items-center gap-2">
-                        <i class="fa-regular fa-floppy-disk"></i> Guardar Registro
-                    </button>
-                    
-                    <button type="button" onclick="cancelarModificacion()" id="cancelModificationBtn" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-lg shadow transition-all active:scale-95 flex justify-center items-center gap-2 mt-3 hidden">
-                        <i class="fa-solid fa-xmark"></i> Cancelar Modificación
-                    </button>
-                    <button type="button" onclick="mostrarModalLimpiarDB()" class="w-full text-xs text-slate-500 hover:text-red-400 mt-4 underline">
-                        Borrar todos los datos (Admin)
-                    </button>
-                </form>
+                <div 
+                    id="recentActivityLog" 
+                    class="flex flex-col gap-1 overflow-y-auto max-h-40 p-1 bg-mining-900 border border-mining-700 rounded text-slate-300" 
+                    style="min-height: 100px; text-align: left;"
+                >
+                    <p class="text-xs text-slate-600 italic text-center py-2">Cargando registros...</p>
+                </div>
             </div>
-        </section>
 
-        <section id="viewVisualizacion" class="hidden fade-in">
-            
-            <header class="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-6 border-b border-mining-700 pb-4">
-                <div>
-                    <h2 class="text-3xl font-light text-white">Visualización de Obra</h2>
-                    <p class="text-sm text-slate-400 mt-1">Clasificación por Zonas y Tipos</p>
-                </div>
-                <div class="text-right mt-3 sm:mt-0">
-                    <span id="totalRegistros" class="text-2xl font-bold text-mining-accent">0</span>
-                    <p class="text-xs text-slate-500 uppercase tracking-wide">Registros</p>
-                </div>
-            </header>
-
-            <div class="mb-6 bg-mining-900 border border-mining-700 rounded-xl shadow-inner overflow-hidden">
-                <h3 class="text-sm font-semibold text-white p-3 border-b border-mining-700 flex items-center gap-2 uppercase tracking-wider bg-mining-800">
-                    <i class="fa-solid fa-terminal text-mining-accent"></i> 
-                    Log de Últimos Registros
-                </h3>
-                <div id="recentActivityLog" class="h-[200px] overflow-y-auto font-mono text-sm p-3 space-y-1">
+            <div class="mb-6">
+                <h3 class="text-base font-bold text-slate-400 mb-2 border-b border-mining-700 pb-1">Filtro por Zona:</h3>
+                <div id="zoneFilterContainer" class="flex flex-wrap gap-2 overflow-x-auto pb-2">
                     </div>
             </div>
             
-            <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+            <div id="dashboardContainer" class="grid grid-cols-1 gap-8">
+                <p class="text-center py-10 text-slate-500 italic">Cargando datos...</p>
             </div>
+        </div>
 
-            <div id="dashboardContainer" class="space-y-8 pb-20">
-                <div class="text-center py-20 text-slate-600">
-                    <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros cargados aún.</p>
-                </div>
-            </div>
+        <div id="viewVisualizacionMuros" class="hidden container mx-auto p-4 md:p-8">
+            <h2 class="text-3xl font-bold text-white mb-6 text-center">
+                <i class="fa-solid fa-ruler-combined mr-2 text-mining-accent"></i> Perfiles de Muros
+            </h2>
 
-        </section>
-        
-        <section id="viewVisualizacionMuros" class="hidden fade-in">
-            <header class="mb-6 border-b border-mining-700 pb-4">
-                <h2 class="text-3xl font-light text-white flex items-center gap-2">
-                    <i class="fa-solid fa-mountain text-mining-accent"></i> Perfil de Muros
-                </h2>
-                <p class="text-sm text-slate-400 mt-1">Visualización del avance capa por capa de los muros. Se muestra el **último registro** por capa.</p>
-            </header>
-            
-            <div id="murosZoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
-            </div>
-
-            <div class="mb-6 p-4 bg-mining-800 rounded-lg border border-mining-700">
-                <h3 class="text-lg font-semibold text-white mb-2">Leyenda</h3>
-                <div class="flex flex-wrap gap-4 text-sm">
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-success rounded-full"></span> Completa</span>
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-warning rounded-full"></span> Parcial</span>
-                    <span class="flex items-center gap-2"><span class="w-4 h-4 bg-mining-700 rounded-full"></span> Sin Datos</span>
-                </div>
-            </div>
-
-            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                <div class="text-center py-20 text-slate-600 col-span-full">
-                    <i class="fa-solid fa-ruler-combined text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros de muros cargados aún.</p>
-                </div>
+            <div class="mb-6">
+                <h3 class="text-base font-bold text-slate-400 mb-2 border-b border-mining-700 pb-1">Filtro por Zona:</h3>
+                <div id="murosZoneFilterContainer" class="flex flex-wrap gap-2 overflow-x-auto pb-2">
+                    </div>
             </div>
             
-        </section>
-
+            <div id="murosDashboard" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                 <p class="text-center py-10 text-slate-500 italic col-span-full">Cargando perfiles...</p>
+            </div>
+        </div>
 
     </main>
-
-    <div id="toast" class="fixed bottom-5 right-5 bg-mining-800 border-l-4 border-mining-accent text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
-        <i class="fa-solid fa-circle-check text-mining-accent"></i>
-        <span>Datos guardados correctamente</span>
+    
+    <div id="alertModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
+        <div class="bg-mining-800 p-6 rounded-xl shadow-2xl w-full max-w-sm border border-mining-700">
+            <h3 class="text-xl font-bold text-mining-accent mb-4"><i class="fa-solid fa-circle-exclamation mr-2"></i> Alerta</h3>
+            <p id="alertMessage" class="text-slate-300 mb-6"></p>
+            <button onclick="hideAlertModal()" class="w-full bg-mining-accent hover:bg-sky-500 text-mining-primary font-bold py-2 rounded-lg transition-colors">Aceptar</button>
+        </div>
     </div>
 
-    <div id="actionConfirmationModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-mining-800 rounded-xl w-full max-w-sm p-6 border border-mining-700 shadow-2xl">
-            <h3 id="actionModalTitle" class="text-lg font-bold text-white mb-4 border-b border-mining-700 pb-2">Confirmar Acción</h3>
-            <p id="actionModalMessage" class="text-sm text-slate-300 mb-6"></p>
-            <div class="flex justify-end gap-3">
-                <button onclick="document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden')" class="px-4 py-2 text-sm font-medium rounded-lg text-slate-400 hover:text-white transition-colors">Cancelar</button>
-                <button id="actionModalConfirmBtn" class="px-4 py-2 text-sm font-medium rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">Confirmar</button>
+    <div id="actionConfirmationModal" class="hidden fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center">
+        <div class="bg-mining-800 p-6 rounded-xl shadow-2xl w-full max-w-sm border border-mining-700">
+            <h3 id="actionModalTitle" class="text-xl font-bold text-red-500 mb-4"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Confirmar Acción</h3>
+            <p id="actionModalMessage" class="text-slate-300 mb-6"></p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="document.getElementById('actionConfirmationModal').classList.replace('flex', 'hidden')" class="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancelar</button>
+                <button id="actionModalConfirmBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors">Confirmar</button>
             </div>
         </div>
     </div>
     
-    <div id="alertModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50 p-4">
-        <div class="bg-mining-800 rounded-xl w-full max-w-sm p-6 border border-mining-700 shadow-2xl">
-            <h3 class="text-lg font-bold text-yellow-500 mb-4 border-b border-mining-700 pb-2"><i class="fa-solid fa-triangle-exclamation mr-2"></i> Atención</h3>
-            <p id="alertMessage" class="text-sm text-slate-300 mb-6"></p>
-            <div class="flex justify-end">
-                <button onclick="hideAlertModal()" class="px-4 py-2 text-sm font-medium rounded-lg bg-mining-accent hover:bg-blue-600 text-white transition-colors">Aceptar</button>
-            </div>
-        </div>
+    <div id="toast" class="fixed bottom-5 right-5 text-white px-6 py-4 rounded shadow-2xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <i class="fa-solid text-2xl"></i>
+        <span class="font-bold"></span>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="app.js"></script>
 </body>
 </html>
