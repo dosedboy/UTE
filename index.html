@@ -74,15 +74,15 @@
             padding: 12px;
             height: 200px; /* Altura fija */
             overflow-y: auto;
-            white-space: pre-wrap; /* Permite saltos de línea y conserva espacios */
-            text-align: left; /* Aseguramos alineación a la izquierda */
+            /* Se eliminan estilos que Tailwind manejará: flex-col, gap-1 */
+            white-space: pre-wrap;
+            text-align: left;
         }
         /* Garantiza que cada entrada de log es una línea simple sin bordes y ocupa todo el ancho */
         .log-line {
             display: block; 
-            margin-bottom: 2px;
             line-height: 1.5;
-            text-align: left; /* Aseguramos que no haya centrados */
+            text-align: left;
         }
     </style>
 </head>
@@ -287,8 +287,9 @@
                     <i class="fa-solid fa-terminal text-mining-accent"></i> 
                     Log de Últimos Registros
                 </h3>
-                <div id="recentActivityLog" class="h-[200px] overflow-y-auto font-mono text-sm p-3 space-y-1">
-                    </div>
+                <div id="recentActivityLog" class="flex flex-col gap-1 h-[200px] overflow-y-auto font-mono text-sm p-3">
+                    <div class="text-center py-5 text-slate-600">Cargando datos...</div>
+                </div>
             </div>
             
             <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
