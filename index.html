@@ -265,13 +265,28 @@
             </header>
 
             <div id="zoneFilterContainer" class="mb-6 flex flex-wrap gap-2 p-3 bg-mining-800 rounded-lg border border-mining-700">
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
+                
+                <div id="dashboardContainer" class="lg:col-span-2 space-y-8">
+                    <div class="text-center py-20 text-slate-600">
+                        <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
+                        <p>No hay registros cargados aún.</p>
+                    </div>
                 </div>
 
-            <div id="dashboardContainer" class="grid grid-cols-1 gap-8 pb-20">
-                <div class="text-center py-20 text-slate-600">
-                    <i class="fa-regular fa-folder-open text-6xl mb-4 opacity-20"></i>
-                    <p>No hay registros cargados aún.</p>
+                <div class="lg:col-span-1">
+                    <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl p-4">
+                        <h3 class="text-lg font-bold text-white mb-3 border-b border-mining-700 pb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-clock-rotate-left text-mining-accent"></i> 
+                            Última Actividad
+                        </h3>
+                        <div id="recentActivityLog" class="h-[600px] overflow-y-auto space-y-2 p-1">
+                            </div>
+                    </div>
                 </div>
+
             </div>
 
         </section>
