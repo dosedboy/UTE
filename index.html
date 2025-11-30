@@ -33,24 +33,25 @@
     
     <style>
         body {
-            background-color: #0f172a; /* Fondo principal oscuro */
+            background-color: #0f172a; /* Asegurar fondo principal oscuro */
         }
+        /* Estilos CSS específicos para la visualización de muros y logs */
         .svg-capa {
-            fill: #334155; /* Color base (slate-700) */
-            stroke: #0f172a; /* Borde oscuro */
+            fill: #334155; 
+            stroke: #0f172a; 
             stroke-width: 1;
             transition: fill 0.3s ease;
             cursor: pointer;
         }
         .svg-capa:hover {
-            fill: #475569; /* slate-600 */
+            fill: #475569;
         }
         .svg-capa.color-parcial {
-            fill: #fbbf24; /* amber-400 / mining-warning */
+            fill: #fbbf24; 
             opacity: 0.8;
         }
         .svg-capa.color-completa {
-            fill: #22c55e; /* green-500 / mining-success */
+            fill: #22c55e;
             opacity: 0.8;
         }
         .tag-nuevo {
