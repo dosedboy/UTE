@@ -575,8 +575,7 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
 
 /**
  * Renderiza el Log de Actividad Reciente, ahora en tarjetas individuales,
- * utilizando el formato aplanado para asegurar que cada línea de log
- * se muestre en una sola línea continua.
+ * con padding y espaciado minimizado para mayor compacidad.
  */
 function renderizarLogActividad(logs) {
     const logContainer = document.getElementById('recentActivityLog');
@@ -596,7 +595,8 @@ function renderizarLogActividad(logs) {
         const hh = String(dateObj.getHours()).padStart(2, '0');
         const min = String(dateObj.getMinutes()).padStart(2, '0');
         
-        const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`;
+        // Formato: [DD/MM/AA HH:MM]
+        const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`; 
         
         // --- 2. Preparar el Contenido del Log ---
         let colorTipo = '';
@@ -633,9 +633,10 @@ function renderizarLogActividad(logs) {
             }
         }
 
-        // --- 3. Ensamblar la LÍNEA COMPLETA como una Tarjeta (nuevo div) ---
+        // --- 3. Ensamblar la LÍNEA COMPLETA como una Tarjeta ---
+        // Se cambió px-3 py-2 por px-2 py-1 para reducir el espaciado interno.
         const line = `
-            <div class="bg-mining-900 px-3 py-2 rounded text-xs border border-mining-700 log-card">
+            <div class="bg-mining-900 px-2 py-1 rounded text-xs border border-mining-700 log-card">
                 <span class="${colorTipo} font-bold">${timestamp}</span> <span class="text-slate-200">${log.usuario}</span> | <span class="text-slate-400">${log.turno}</span> | ${detalleObra}
             </div>
         `;
