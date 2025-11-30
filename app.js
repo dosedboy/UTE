@@ -474,6 +474,11 @@ async function renderizarDatosReporte() {
     });
     document.getElementById('totalRegistros').innerText = totalCount;
 
+    // --- NUEVO: Renderizar Log de Actividad Reciente ---
+    const ultimosRegistros = await obtenerUltimosRegistros(15); // Limitar a 15 entradas
+    renderizarLogActividad(ultimosRegistros);
+    // ----------------------------------------------------
+
     if (zonas.length === 0) {
         document.getElementById('zoneFilterContainer').innerHTML = ''; 
         document.getElementById('dashboardContainer').innerHTML = `
@@ -482,14 +487,9 @@ async function renderizarDatosReporte() {
                 <p>No hay registros cargados aún.</p>
                 <p class="text-sm mt-2">Utilice el Menú de Carga para ingresar datos.</p>
             </div>`;
-        document.getElementById('recentActivityLog').innerHTML = `<p class="text-sm text-slate-600 italic text-center py-4">No se encontraron registros recientes.</p>`;
         return;
     }
 
-    // --- NUEVO: Renderizar Log de Actividad Reciente ---
-    const ultimosRegistros = await obtenerUltimosRegistros(15); // Limitar a 15 entradas
-    renderizarLogActividad(ultimosRegistros);
-    // ----------------------------------------------------
 
     renderizarFiltrosReporte(zonas);
     
@@ -574,45 +574,75 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
 }
 
 /**
- * Renderiza el Log de Actividad Reciente en el contenedor del dashboard.
+ * Renderiza el Log de Actividad Reciente en el contenedor del dashboard,
+ * utilizando el formato de consola solicitado.
  */
 function renderizarLogActividad(logs) {
     const logContainer = document.getElementById('recentActivityLog');
     logContainer.innerHTML = ''; // Limpiar contenido anterior
 
     if (logs.length === 0) {
-        logContainer.innerHTML = `<p class="text-sm text-slate-600 italic text-center py-4">No se encontraron registros recientes.</p>`;
+        logContainer.innerHTML = `<p class="text-xs text-slate-600 italic text-center py-2">No se encontraron registros recientes.</p>`;
         return;
     }
 
     logs.forEach(log => {
-        // Formatear fecha y hora
-        const fecha = log.fechaRaw.toLocaleDateString('es-ES');
-        const hora = log.fechaRaw.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-
-        // Determinar estilo por tipo
-        const icon = log.tipo === 'MURO' 
-            ? '<i class="fa-solid fa-block-brick text-blue-400"></i>' 
-            : '<i class="fa-solid fa-mountain-sun text-yellow-400"></i>';
+        // --- 1. Formateo de Fecha/Hora ---
+        const dateObj = log.fechaRaw;
+        const dd = String(dateObj.getDate()).padStart(2, '0');
+        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const aa = String(dateObj.getFullYear()).slice(-2);
+        const hh = String(dateObj.getHours()).padStart(2, '0');
+        const min = String(dateObj.getMinutes()).padStart(2, '0');
         
-        const background = 'bg-mining-900/50';
+        const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`;
+        
+        // --- 2. Preparar el Contenido del Log ---
+        let content = '';
+        let colorClass = '';
+        let detalleObra = ''; // Guarda muro/pileta/cancha/capa/material
+        
+        if (log.tipo === 'MURO') {
+            colorClass = 'text-blue-400';
+            const estado = log.descripcion.match(/\((.*?)\)/)[1];
+            const estadoColor = estado === 'COMPLETA' ? 'text-green-500' : 'text-yellow-500';
 
-        const html = `
-            <div class="${background} p-3 rounded-lg border border-mining-700 text-xs shadow-sm fade-in">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="font-bold text-white uppercase flex items-center gap-2">
-                        ${icon} ${log.tipo} (${log.zona})
-                    </span>
-                    <span class="text-slate-500">${fecha} ${hora}</span>
-                </div>
-                <p class="text-slate-300 ml-5">${log.descripcion}</p>
-                <p class="text-slate-500 mt-1 ml-5">
-                    <i class="fa-solid fa-user-gear mr-1"></i> ${log.usuario} | Turno: ${log.turno}
-                </p>
+            // [0] Muro ID, [1] Capa ID
+            const partes = log.descripcion.split(' - ');
+            const muroId = partes[0].replace('Muro ', ''); 
+            const capa = partes[1].split('(')[0].trim();
+            
+            // Formato: ZONA | PILETA | CANCHA/MURO | NUMERO/NOMBRE | MATERIAL/CAPA
+            detalleObra = `${log.zona} | -- | MURO | <span class="text-white">${muroId}</span> | <span class="${estadoColor}">${capa} (${estado})</span>`;
+
+        } else { // CANCHA
+            colorClass = 'text-yellow-400';
+            const material = log.descripcion.match(/\((.*?)\)/)[1];
+            const materialColor = material === 'FINO' ? 'text-blue-500' : 'text-orange-500';
+
+            // Coincidencias: [1]=Pileta, [2]=Número, [3]=Material (se usa la variable 'material')
+            const partesCancha = log.descripcion.match(/Cancha (.*)\/(.*) \((.*)\)/);
+            
+            // Formato: ZONA | PILETA | CANCHA/MURO | NUMERO/NOMBRE | MATERIAL/CAPA
+            detalleObra = `${log.zona} | <span class="text-red-400">${partesCancha[1]}</span> | CANCHA | <span class="text-white">${partesCancha[2]}</span> | <span class="${materialColor}">${material}</span>`;
+        }
+
+        // --- 3. Ensamblar la Línea del Log ---
+        // [DD/MM/AA HH:HH] usuario | turno | zona | pileta | cancha o muro | numero de cancha o nombre de muro | tipo de material o capa
+        const line = `
+            <div class="log-line">
+                <span class="${colorClass} font-bold">${timestamp}</span> 
+                <span class="text-slate-200">${log.usuario}</span> 
+                | <span class="text-slate-400">${log.turno}</span> 
+                | ${detalleObra}
             </div>
         `;
-        logContainer.innerHTML += html;
+        
+        logContainer.innerHTML += line;
     });
+    
+    // Desplazar al final para ver el log más reciente
+    logContainer.scrollTop = logContainer.scrollHeight;
 }
 
 
