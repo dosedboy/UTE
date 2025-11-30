@@ -474,10 +474,10 @@ async function renderizarDatosReporte() {
     });
     document.getElementById('totalRegistros').innerText = totalCount;
 
-    // --- NUEVO: Renderizar Log de Actividad Reciente ---
+    // --- RENDERIZAR LOG DE ACTIVIDAD RECIENTE (Estilo Consola) ---
     const ultimosRegistros = await obtenerUltimosRegistros(15); // Limitar a 15 entradas
     renderizarLogActividad(ultimosRegistros);
-    // ----------------------------------------------------
+    // ----------------------------------------------------------------
 
     if (zonas.length === 0) {
         document.getElementById('zoneFilterContainer').innerHTML = ''; 
@@ -575,7 +575,7 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
 
 /**
  * Renderiza el Log de Actividad Reciente en el contenedor del dashboard,
- * utilizando el formato de consola solicitado.
+ * utilizando el formato de consola solicitado (puramente texto plano).
  */
 function renderizarLogActividad(logs) {
     const logContainer = document.getElementById('recentActivityLog');
@@ -598,12 +598,11 @@ function renderizarLogActividad(logs) {
         const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`;
         
         // --- 2. Preparar el Contenido del Log ---
-        let content = '';
-        let colorClass = '';
-        let detalleObra = ''; // Guarda muro/pileta/cancha/capa/material
+        let colorTipo = '';
+        let detalleObra = ''; // Formato: zona | pileta | cancha o muro | numero de cancha o nombre de muro | tipo de material o capa
         
         if (log.tipo === 'MURO') {
-            colorClass = 'text-blue-400';
+            colorTipo = 'text-blue-400';
             const estado = log.descripcion.match(/\((.*?)\)/)[1];
             const estadoColor = estado === 'COMPLETA' ? 'text-green-500' : 'text-yellow-500';
 
@@ -612,26 +611,38 @@ function renderizarLogActividad(logs) {
             const muroId = partes[0].replace('Muro ', ''); 
             const capa = partes[1].split('(')[0].trim();
             
-            // Formato: ZONA | PILETA | CANCHA/MURO | NUMERO/NOMBRE | MATERIAL/CAPA
-            detalleObra = `${log.zona} | -- | MURO | <span class="text-white">${muroId}</span> | <span class="${estadoColor}">${capa} (${estado})</span>`;
+            // MURO: zona | -- | MURO | Muro ID | Capa (Estado)
+            detalleObra = `
+                <span class="text-slate-400">${log.zona}</span> 
+                | -- 
+                | <span class="text-slate-400">MURO</span> 
+                | <span class="text-white font-bold">${muroId}</span> 
+                | <span class="${estadoColor}">${capa} (${estado})</span>
+            `;
 
         } else { // CANCHA
-            colorClass = 'text-yellow-400';
+            colorTipo = 'text-yellow-400';
             const material = log.descripcion.match(/\((.*?)\)/)[1];
             const materialColor = material === 'FINO' ? 'text-blue-500' : 'text-orange-500';
 
-            // Coincidencias: [1]=Pileta, [2]=Número, [3]=Material (se usa la variable 'material')
+            // Coincidencias: [1]=Pileta, [2]=Número, [3]=Material
             const partesCancha = log.descripcion.match(/Cancha (.*)\/(.*) \((.*)\)/);
             
-            // Formato: ZONA | PILETA | CANCHA/MURO | NUMERO/NOMBRE | MATERIAL/CAPA
-            detalleObra = `${log.zona} | <span class="text-red-400">${partesCancha[1]}</span> | CANCHA | <span class="text-white">${partesCancha[2]}</span> | <span class="${materialColor}">${material}</span>`;
+            // CANCHA: zona | Pileta | CANCHA | Número | Material
+            detalleObra = `
+                <span class="text-slate-400">${partesCancha[1]}</span> 
+                | <span class="text-red-400">${log.zona}</span> 
+                | <span class="text-slate-400">CANCHA</span> 
+                | <span class="text-white font-bold">${partesCancha[2]}</span> 
+                | <span class="${materialColor}">${material}</span>
+            `;
         }
 
         // --- 3. Ensamblar la Línea del Log ---
         // [DD/MM/AA HH:HH] usuario | turno | zona | pileta | cancha o muro | numero de cancha o nombre de muro | tipo de material o capa
         const line = `
-            <div class="log-line">
-                <span class="${colorClass} font-bold">${timestamp}</span> 
+            <div class="log-line text-slate-400">
+                <span class="${colorTipo} font-bold">${timestamp}</span> 
                 <span class="text-slate-200">${log.usuario}</span> 
                 | <span class="text-slate-400">${log.turno}</span> 
                 | ${detalleObra}
