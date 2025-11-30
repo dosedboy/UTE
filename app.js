@@ -574,8 +574,9 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
 }
 
 /**
- * Renderiza el Log de Actividad Reciente en el contenedor del dashboard,
- * utilizando el formato de consola solicitado (puramente texto plano, alineado a la izquierda).
+ * Renderiza el Log de Actividad Reciente, ahora en tarjetas individuales,
+ * utilizando el formato aplanado para asegurar que cada línea de log
+ * se muestre en una sola línea continua.
  */
 function renderizarLogActividad(logs) {
     const logContainer = document.getElementById('recentActivityLog');
@@ -599,7 +600,7 @@ function renderizarLogActividad(logs) {
         
         // --- 2. Preparar el Contenido del Log ---
         let colorTipo = '';
-        let detalleObra = ''; // Formato: zona | pileta | cancha o muro | numero de cancha o nombre de muro | tipo de material o capa
+        let detalleObra = ''; 
         
         if (log.tipo === 'MURO') {
             colorTipo = 'text-blue-400';
@@ -612,7 +613,7 @@ function renderizarLogActividad(logs) {
             const capa = partes.length > 1 ? partes[1].split('(')[0].trim() : 'N/A';
             
             // MURO: zona | -- | MURO | Muro ID | Capa (Estado)
-            // 🔥 CORRECCIÓN: Se eliminan saltos de línea y se aplana la cadena para evitar la fragmentación.
+            // CADENA APLANADA
             detalleObra = `<span class="text-slate-400">${log.zona}</span> | <span class="text-slate-500">--</span> | <span class="text-slate-400">MURO</span> | <span class="text-white font-bold">${muroId}</span> | <span class="${estadoColor}">${capa} (${estado})</span>`.trim();
 
         } else { // CANCHA
@@ -625,17 +626,16 @@ function renderizarLogActividad(logs) {
             
             if (partesCancha) {
                 // CANCHA: zona | Pileta | CANCHA | Número | Material
-                // 🔥 CORRECCIÓN: Se eliminan saltos de línea y se aplana la cadena.
+                // CADENA APLANADA
                 detalleObra = `<span class="text-red-400">${partesCancha[1]}</span> | <span class="text-slate-400">${log.zona}</span> | <span class="text-slate-400">CANCHA</span> | <span class="text-white font-bold">${partesCancha[2]}</span> | <span class="${materialColor}">${material}</span>`.trim();
             } else {
                 detalleObra = `<span class="text-slate-500">Error de formato en cancha.</span>`;
             }
         }
 
-        // --- 3. Ensamblar la Línea del Log ---
-        // 🔥 CORRECCIÓN: Se asegura que el contenido dentro del div sea plano.
+        // --- 3. Ensamblar la LÍNEA COMPLETA como una Tarjeta (nuevo div) ---
         const line = `
-            <div class="log-line text-slate-400">
+            <div class="bg-mining-900 px-3 py-2 rounded text-xs border border-mining-700 log-card">
                 <span class="${colorTipo} font-bold">${timestamp}</span> <span class="text-slate-200">${log.usuario}</span> | <span class="text-slate-400">${log.turno}</span> | ${detalleObra}
             </div>
         `;
