@@ -575,7 +575,7 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
 
 /**
  * Renderiza el Log de Actividad Reciente en el contenedor del dashboard,
- * utilizando el formato de consola solicitado (puramente texto plano).
+ * utilizando el formato de consola solicitado (puramente texto plano, alineado a la izquierda).
  */
 function renderizarLogActividad(logs) {
     const logContainer = document.getElementById('recentActivityLog');
@@ -603,49 +603,55 @@ function renderizarLogActividad(logs) {
         
         if (log.tipo === 'MURO') {
             colorTipo = 'text-blue-400';
-            const estado = log.descripcion.match(/\((.*?)\)/)[1];
+            const estadoMatch = log.descripcion.match(/\((.*?)\)/);
+            const estado = estadoMatch ? estadoMatch[1] : 'SIN ESTADO';
             const estadoColor = estado === 'COMPLETA' ? 'text-green-500' : 'text-yellow-500';
 
-            // [0] Muro ID, [1] Capa ID
             const partes = log.descripcion.split(' - ');
             const muroId = partes[0].replace('Muro ', ''); 
-            const capa = partes[1].split('(')[0].trim();
+            const capa = partes.length > 1 ? partes[1].split('(')[0].trim() : 'N/A';
             
             // MURO: zona | -- | MURO | Muro ID | Capa (Estado)
+            // Se eliminan los saltos de línea y se ajustan los espacios para el formato de consola
             detalleObra = `
-                <span class="text-slate-400">${log.zona}</span> 
-                | -- 
-                | <span class="text-slate-400">MURO</span> 
-                | <span class="text-white font-bold">${muroId}</span> 
-                | <span class="${estadoColor}">${capa} (${estado})</span>
+                <span class="text-slate-400">${log.zona}</span> | 
+                <span class="text-slate-500">--</span> | 
+                <span class="text-slate-400">MURO</span> | 
+                <span class="text-white font-bold">${muroId}</span> | 
+                <span class="${estadoColor}">${capa} (${estado})</span>
             `;
 
         } else { // CANCHA
             colorTipo = 'text-yellow-400';
-            const material = log.descripcion.match(/\((.*?)\)/)[1];
+            const materialMatch = log.descripcion.match(/\((.*?)\)/);
+            const material = materialMatch ? materialMatch[1] : 'N/A';
             const materialColor = material === 'FINO' ? 'text-blue-500' : 'text-orange-500';
 
-            // Coincidencias: [1]=Pileta, [2]=Número, [3]=Material
             const partesCancha = log.descripcion.match(/Cancha (.*)\/(.*) \((.*)\)/);
             
-            // CANCHA: zona | Pileta | CANCHA | Número | Material
-            detalleObra = `
-                <span class="text-slate-400">${partesCancha[1]}</span> 
-                | <span class="text-red-400">${log.zona}</span> 
-                | <span class="text-slate-400">CANCHA</span> 
-                | <span class="text-white font-bold">${partesCancha[2]}</span> 
-                | <span class="${materialColor}">${material}</span>
-            `;
+            if (partesCancha) {
+                // CANCHA: zona | Pileta | CANCHA | Número | Material
+                // Se eliminan los saltos de línea y se ajustan los espacios para el formato de consola
+                detalleObra = `
+                    <span class="text-red-400">${partesCancha[1]}</span> | 
+                    <span class="text-slate-400">${log.zona}</span> | 
+                    <span class="text-slate-400">CANCHA</span> | 
+                    <span class="text-white font-bold">${partesCancha[2]}</span> | 
+                    <span class="${materialColor}">${material}</span>
+                `;
+            } else {
+                detalleObra = `<span class="text-slate-500">Error de formato en cancha.</span>`;
+            }
         }
 
         // --- 3. Ensamblar la Línea del Log ---
-        // [DD/MM/AA HH:HH] usuario | turno | zona | pileta | cancha o muro | numero de cancha o nombre de muro | tipo de material o capa
+        // Se asegura que la estructura se mantenga plana y sin saltos que centren el contenido.
         const line = `
             <div class="log-line text-slate-400">
                 <span class="${colorTipo} font-bold">${timestamp}</span> 
-                <span class="text-slate-200">${log.usuario}</span> 
-                | <span class="text-slate-400">${log.turno}</span> 
-                | ${detalleObra}
+                <span class="text-slate-200">${log.usuario}</span> | 
+                <span class="text-slate-400">${log.turno}</span> | 
+                ${detalleObra}
             </div>
         `;
         
