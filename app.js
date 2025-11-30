@@ -612,14 +612,8 @@ function renderizarLogActividad(logs) {
             const capa = partes.length > 1 ? partes[1].split('(')[0].trim() : 'N/A';
             
             // MURO: zona | -- | MURO | Muro ID | Capa (Estado)
-            // Se eliminan los saltos de línea y se ajustan los espacios para el formato de consola
-            detalleObra = `
-                <span class="text-slate-400">${log.zona}</span> | 
-                <span class="text-slate-500">--</span> | 
-                <span class="text-slate-400">MURO</span> | 
-                <span class="text-white font-bold">${muroId}</span> | 
-                <span class="${estadoColor}">${capa} (${estado})</span>
-            `;
+            // 🔥 CORRECCIÓN: Se eliminan saltos de línea y se aplana la cadena para evitar la fragmentación.
+            detalleObra = `<span class="text-slate-400">${log.zona}</span> | <span class="text-slate-500">--</span> | <span class="text-slate-400">MURO</span> | <span class="text-white font-bold">${muroId}</span> | <span class="${estadoColor}">${capa} (${estado})</span>`.trim();
 
         } else { // CANCHA
             colorTipo = 'text-yellow-400';
@@ -631,27 +625,18 @@ function renderizarLogActividad(logs) {
             
             if (partesCancha) {
                 // CANCHA: zona | Pileta | CANCHA | Número | Material
-                // Se eliminan los saltos de línea y se ajustan los espacios para el formato de consola
-                detalleObra = `
-                    <span class="text-red-400">${partesCancha[1]}</span> | 
-                    <span class="text-slate-400">${log.zona}</span> | 
-                    <span class="text-slate-400">CANCHA</span> | 
-                    <span class="text-white font-bold">${partesCancha[2]}</span> | 
-                    <span class="${materialColor}">${material}</span>
-                `;
+                // 🔥 CORRECCIÓN: Se eliminan saltos de línea y se aplana la cadena.
+                detalleObra = `<span class="text-red-400">${partesCancha[1]}</span> | <span class="text-slate-400">${log.zona}</span> | <span class="text-slate-400">CANCHA</span> | <span class="text-white font-bold">${partesCancha[2]}</span> | <span class="${materialColor}">${material}</span>`.trim();
             } else {
                 detalleObra = `<span class="text-slate-500">Error de formato en cancha.</span>`;
             }
         }
 
         // --- 3. Ensamblar la Línea del Log ---
-        // Se asegura que la estructura se mantenga plana y sin saltos que centren el contenido.
+        // 🔥 CORRECCIÓN: Se asegura que el contenido dentro del div sea plano.
         const line = `
             <div class="log-line text-slate-400">
-                <span class="${colorTipo} font-bold">${timestamp}</span> 
-                <span class="text-slate-200">${log.usuario}</span> | 
-                <span class="text-slate-400">${log.turno}</span> | 
-                ${detalleObra}
+                <span class="${colorTipo} font-bold">${timestamp}</span> <span class="text-slate-200">${log.usuario}</span> | <span class="text-slate-400">${log.turno}</span> | ${detalleObra}
             </div>
         `;
         
