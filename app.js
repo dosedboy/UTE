@@ -20,19 +20,6 @@ const CAPA_SVG_MAP = {
 const CAPAS_ORDENADAS = ['BASAL', '1', '2', '3', '4', '5', '6'];
 
 // =========================================================================
-// === ANCHOS DE COLUMNA PARA EL LOG MONOESPACIADO (AJUSTADO) ===
-// =========================================================================
-const COL_WIDTHS = {
-    TIMESTAMP: 18,  // [DD/MM/AA HH:MM]
-    USER: 13,       // Usuario (Ej: franco rojas) - AJUSTADO
-    TURNO: 5,       // DIA/NOCHE
-    ZONA: 5,        // PC3/PL5/MLP2
-    PILETA: 4,      // A/B/C o ' ' (si es muro)
-    TIPO: 7,        // CANCHA/MURO
-    ID: 7           // 6/7 o M5DE
-};
-
-// =========================================================================
 // === 2. FUNCIÓN DE NORMALIZACIÓN DE ZONA Y CÁLCULO DE TIEMPO ===
 // =========================================================================
 
@@ -272,60 +259,6 @@ async function obtenerDatos() {
     return { reporteDetallado: datosDB, perfilesMuros: perfilesMuros }; 
 }
 
-/**
- * Obtiene los últimos N registros de muros y canchas combinados.
- */
-async function obtenerUltimosRegistros(limit = 15) {
-    if (!currentUser) return [];
-
-    // Consulta para Muros (agregando campos específicos para el log)
-    const { data: murosData, error: murosError } = await supabaseClient
-        .from('muros_registros')
-        .select(`id, fecha, zona, muro_id, capa, estado, turno, nombre_usuario`)
-        .order('fecha', { ascending: false })
-        .limit(limit);
-
-    // Consulta para Canchas (agregando campos específicos para el log)
-    const { data: canchasData, error: canchasError } = await supabaseClient
-        .from('canchas_registros')
-        .select(`id, fecha, zona, pileta, numero, material, turno, nombre_usuario`)
-        .order('fecha', { ascending: false })
-        .limit(limit);
-
-    if (murosError || canchasError) {
-        console.error("Error al obtener logs:", murosError || canchasError);
-        return [];
-    }
-
-    // 1. Mapear y estandarizar los datos
-    const logsMuros = murosData.map(r => ({
-        id: r.id, // Añadido el ID para posible edición (aunque el log directo no lo usa)
-        tipo: 'MURO',
-        fechaRaw: new Date(r.fecha),
-        zona: r.zona,
-        turno: r.turno,
-        usuario: r.nombre_usuario || 'DESCONOCIDO',
-        descripcion: `Muro ${r.muro_id} - Capa ${r.capa} (${r.estado.toUpperCase()})`
-    }));
-
-    const logsCanchas = canchasData.map(r => ({
-        id: r.id, // Añadido el ID
-        tipo: 'CANCHA',
-        fechaRaw: new Date(r.fecha),
-        zona: r.zona,
-        turno: r.turno,
-        usuario: r.nombre_usuario || 'DESCONOCIDO',
-        descripcion: `Cancha ${r.pileta}/${r.numero} (${r.material})`
-    }));
-
-    // 2. Combinar, ordenar y limitar
-    const allLogs = [...logsMuros, ...logsCanchas];
-    allLogs.sort((a, b) => b.fechaRaw - a.fechaRaw); // Orden descendente
-
-    return allLogs.slice(0, limit);
-}
-
-
 async function guardarDatos(e) {
     e.preventDefault();
     if (!currentUser) return showAlertModal("Error: Debe iniciar sesión para guardar datos.");
@@ -489,11 +422,6 @@ async function renderizarDatosReporte() {
     });
     document.getElementById('totalRegistros').innerText = totalCount;
 
-    // --- RENDERIZAR LOG DE ACTIVIDAD RECIENTE (Estilo Consola) ---
-    const ultimosRegistros = await obtenerUltimosRegistros(15); // Limitar a 15 entradas
-    renderizarLogActividad(ultimosRegistros);
-    // ----------------------------------------------------------------
-
     if (zonas.length === 0) {
         document.getElementById('zoneFilterContainer').innerHTML = ''; 
         document.getElementById('dashboardContainer').innerHTML = `
@@ -504,7 +432,6 @@ async function renderizarDatosReporte() {
             </div>`;
         return;
     }
-
 
     renderizarFiltrosReporte(zonas);
     
@@ -587,121 +514,6 @@ function renderizarContenidoReporte(zonaSeleccionada, datosDB) {
         }
     });
 }
-
-/**
- * Renderiza el Log de Actividad Reciente, ahora en formato MONOESPACIADO,
- * utilizando el separador '~~' y relleno de espacio (padEnd) para la alineación.
- */
-function renderizarLogActividad(logs) {
-    const logContainer = document.getElementById('recentActivityLog');
-    logContainer.innerHTML = ''; // Limpiar contenido anterior
-
-    // Asegurar que el contenedor tenga la clase font-mono
-    logContainer.classList.add('font-mono');
-
-    if (logs.length === 0) {
-        logContainer.innerHTML = `<p class="text-xs text-slate-600 italic text-center py-2">No se encontraron registros recientes.</p>`;
-        return;
-    }
-
-    logs.forEach(log => {
-        // --- 1. Formateo de Fecha/Hora ---
-        const dateObj = log.fechaRaw;
-        const dd = String(dateObj.getDate()).padStart(2, '0');
-        const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-        const aa = String(dateObj.getFullYear()).slice(-2);
-        const hh = String(dateObj.getHours()).padStart(2, '0');
-        const min = String(dateObj.getMinutes()).padStart(2, '0');
-        
-        // Formato: [DD/MM/AA HH:MM]
-        const timestamp = `[${dd}/${mm}/${aa} ${hh}:${min}]`.padEnd(COL_WIDTHS.TIMESTAMP, ' '); 
-        
-        // --- 2. Formateo de Campos Fijos con padding (padEnd) ---
-        // Aseguramos que el usuario no tenga más de 13 caracteres (COL_WIDTHS.USER)
-        const usuario = log.usuario.substring(0, COL_WIDTHS.USER - 1).toUpperCase().padEnd(COL_WIDTHS.USER, ' ');
-        const turno = log.turno.padEnd(COL_WIDTHS.TURNO, ' ');
-        const zona = log.zona.padEnd(COL_WIDTHS.ZONA, ' ');
-
-        // --- 3. Lógica Específica para Muro/Cancha y Campos Variables ---
-        let pileta = ''; 
-        let tipo = '';
-        let identificador = '';
-        let estadoHTML = '';
-
-        if (log.tipo === 'MURO') {
-            const estadoMatch = log.descripcion.match(/\((.*?)\)/);
-            const estado = estadoMatch ? estadoMatch[1] : 'SIN ESTADO'; // Ej: PARCIAL
-            const capaMatch = log.descripcion.match(/Capa (.*?)\s\(/);
-            const capa = capaMatch ? capaMatch[1] : 'N/A'; // Ej: BASAL
-            const muroIdMatch = log.descripcion.match(/Muro (.*?) -/);
-            const muroId = muroIdMatch ? muroIdMatch[1] : 'N/A'; // Ej: M5DE
-            
-            // Columna PILETA queda vacía
-            pileta = ''.padEnd(COL_WIDTHS.PILETA, ' '); 
-            tipo = 'MURO'.padEnd(COL_WIDTHS.TIPO, ' ');
-            identificador = muroId.padEnd(COL_WIDTHS.ID, ' ');
-            
-            const estadoColor = estado === 'COMPLETA' ? 'text-mining-success' : 'text-mining-warning';
-            estadoHTML = `<span class="${estadoColor}">${capa} (${estado})</span>`;
-
-        } else { // CANCHA
-            const materialMatch = log.descripcion.match(/\((.*?)\)/);
-            const material = materialMatch ? materialMatch[1] : 'N/A'; // Ej: FINO
-            // La descripcion para cancha es: `Cancha ${r.pileta}/${r.numero} (${r.material})`
-            const partesCancha = log.descripcion.match(/Cancha (.*?)\/(.*?) \((.*?)\)/);
-            
-            if (partesCancha) {
-                const piletaLetra = partesCancha[1].toUpperCase(); // Ej: A
-                const canchaNum = partesCancha[2]; // Ej: 6
-                
-                pileta = piletaLetra.padEnd(COL_WIDTHS.PILETA, ' '); 
-                tipo = 'CANCHA'.padEnd(COL_WIDTHS.TIPO, ' ');
-                // Se invirtió el orden para coincidir con el formato del usuario: 6/A
-                identificador = `${canchaNum}/${piletaLetra}`.padEnd(COL_WIDTHS.ID, ' '); 
-                
-                const materialColor = material === 'FINO' ? 'text-blue-400' : 'text-orange-400';
-                estadoHTML = `<span class="${materialColor}">${material}</span>`;
-            } else {
-                // Fallback si la descripción no coincide con el regex esperado
-                pileta = ''.padEnd(COL_WIDTHS.PILETA, ' '); 
-                tipo = 'N/A'.padEnd(COL_WIDTHS.TIPO, ' ');
-                identificador = 'N/A'.padEnd(COL_WIDTHS.ID, ' ');
-                estadoHTML = `<span class="text-red-500">ERROR</span>`;
-            }
-        }
-        
-        // --- 4. Ensamblaje de la línea de texto fijo (usando el separador "~~") ---
-        // Se utiliza whitespace-pre en el HTML para respetar los espacios de padEnd
-        const lineaTextoMonoespaciado = 
-            timestamp + '~~' + 
-            usuario + '~~' + 
-            turno + '~~' + 
-            zona + '~~' + 
-            pileta + '~~' + 
-            tipo + '~~' + 
-            identificador;
-
-        // --- 5. Renderizado con Flexbox para separar texto fijo y estado (color) ---
-        const logHTML = `
-            <div 
-                class="log-line flex justify-between items-center text-xs font-mono p-1 border-b border-mining-700/50 hover:bg-mining-700/20 cursor-pointer transition-colors"
-                data-id="${log.id}" 
-                data-tipo="${log.tipo}"
-                onclick="alert('Funcionalidad de edición del log directo en desarrollo.')"
-            >
-                <span class="whitespace-pre text-slate-300">${lineaTextoMonoespaciado}</span>
-                
-                <span class="text-right ml-2 font-bold">${estadoHTML}</span>
-            </div>
-        `;
-
-        logContainer.innerHTML += logHTML;
-    });
-    
-    // Desplazar al final para ver el log más reciente
-    logContainer.scrollTop = logContainer.scrollHeight;
-}
-
 
 // --- Funciones de RENDERIZADO de Muros (Perfil) ---
 
@@ -1504,34 +1316,4 @@ async function limpiarDB() {
         mostrarToast("Base de datos limpiada completamente.", 'red');
         cambiarPestana('visualizacion'); // Recargar las vistas
     }
-}
-
-// =========================================================================
-// 7. INICIALIZACIÓN Y EXPOSICIÓN GLOBAL
-// =========================================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Inicializar listeners del formulario y checkear sesión
-    document.getElementById('selectTipo').addEventListener('change', toggleForm);
-    document.getElementById('checkParcial').addEventListener('change', () => handleChecks('parcial'));
-    document.getElementById('checkCompleta').addEventListener('change', () => handleChecks('completa'));
-
-    // Checkear el estado de la sesión
-    initializeApp();
-});
-
-// Exponer funciones necesarias globalmente (para uso en HTML: onclick, etc.)
-window.cambiarPestana = cambiarPestana;
-window.handleLogin = handleLogin;
-window.handleLogout = handleLogout;
-window.toggleForm = toggleForm;
-window.guardarDatos = guardarDatos;
-window.cancelarModificacion = cancelarModificacion;
-window.handleChecks = handleChecks;
-window.mostrarModalLimpiarDB = mostrarModalLimpiarDB;
-window.filtrarPorZonaReporte = filtrarPorZonaReporte;
-window.filtrarPorZonaMuros = filtrarPorZonaMuros;
-window.mostrarModalEdicion = mostrarModalEdicion;
-window.mostrarModalEdicionCancha = mostrarModalEdicionCancha;
-window.mostrarModalEliminarMuro = mostrarModalEliminarMuro;
-window.mostrarModalEliminarCancha = mostrarModalEliminarCancha;
+         }
