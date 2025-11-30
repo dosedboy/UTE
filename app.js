@@ -1128,40 +1128,44 @@ function generarTarjetaZona(zona, dataZona) {
 }
 
 /**
- * Genera la tarjeta de log de actividad con las últimas 10 entradas.
+ * Genera la tarjeta de log de actividad con las últimas 10 entradas
+ * en un estilo simple de consola.
  */
 function generarTarjetaLog(logActividad) {
     if (logActividad.length === 0) return '';
 
     let itemsHtml = logActividad.map(log => {
-        const iconClass = log.tipo === 'Muro' ? 'fa-solid fa-block-brick' : 'fa-solid fa-mountain-sun';
-        const colorClass = log.tipo === 'Muro' ? 'text-blue-400' : 'text-orange-400';
+        // Formato de Fecha/Hora: [29-Nov-2025 21:01:09]
+        const dateStr = log.fecha.toLocaleDateString('es-ES', { 
+            day: '2-digit', month: 'short', year: 'numeric' 
+        }).replace(/\./g, ''); 
         
-        // Formato de hora: 10:30:15 PM
-        const timeStr = log.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        const timeStr = log.fecha.toLocaleTimeString([], { 
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+        });
+        
+        const timestamp = `[${dateStr} ${timeStr}]`;
+        
+        const typePrefix = log.tipo === 'Muro' ? 'Muro' : 'Cancha';
+        const typeColor = log.tipo === 'Muro' ? 'text-blue-400' : 'text-orange-400';
         
         return `
-            <div class="flex items-start p-3 bg-mining-900/50 rounded-lg border border-mining-700 hover:bg-mining-700/50 transition-colors">
-                <i class="${iconClass} ${colorClass} text-xl mr-3 mt-1 flex-shrink-0"></i>
-                <div class="flex-grow min-w-0">
-                    <p class="text-sm font-bold text-white truncate">${log.detalle}</p>
-                    <div class="text-xs text-slate-400 mt-1 flex justify-between items-center">
-                        <span class="font-semibold text-slate-300"><i class="fa-solid fa-user mr-1"></i> ${log.usuario}</span>
-                        <span><i class="fa-regular fa-clock mr-1"></i> ${timeStr}</span>
-                    </div>
-                </div>
+            <div class="font-mono text-sm leading-relaxed p-2 border-b border-mining-700 last:border-b-0 hover:bg-mining-700/20 transition-colors">
+                <span class="text-slate-500">${timestamp}</span> 
+                <span class="font-semibold text-slate-300 ml-2">@${log.usuario}:</span> 
+                <span class="${typeColor} font-bold">${typePrefix}</span> - ${log.detalle}
             </div>
         `;
     }).join('');
 
     // **IMPORTANTE**: La clase "col-span-1 lg:col-span-2" hace que ocupe todo el ancho.
     return `
-        <div class="bg-mining-800 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in col-span-1 lg:col-span-2"> 
-            <div class="bg-gradient-to-r from-slate-700 to-mining-800 p-4 border-b border-mining-700 flex justify-between items-center">
-                <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-list-check mr-2 text-slate-400"></i> Últimas 10 Actividades Globales</h3>
-                <span class="text-xs text-slate-400 italic">Más reciente primero</span>
+        <div class="bg-mining-900 rounded-xl border border-mining-700 shadow-xl overflow-hidden fade-in col-span-1 lg:col-span-2"> 
+            <div class="bg-mining-700 p-4 border-b border-mining-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white tracking-wide"><i class="fa-solid fa-terminal mr-2 text-slate-400"></i> Log de Actividad Global (Consola)</h3>
+                <span class="text-xs text-slate-400 italic">Últimas 10 entradas</span>
             </div>
-            <div class="p-4 space-y-3">
+            <div class="p-1 max-h-80 overflow-y-auto">
                 ${itemsHtml}
             </div>
         </div>
